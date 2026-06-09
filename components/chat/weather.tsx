@@ -283,6 +283,15 @@ export function Weather({
 }: {
   weatherAtLocation?: WeatherAtLocation;
 }) {
+  if (
+    !weatherAtLocation?.hourly?.temperature_2m ||
+    !weatherAtLocation?.current?.temperature_2m ||
+    !weatherAtLocation?.daily?.sunrise ||
+    !weatherAtLocation?.daily?.sunset
+  ) {
+    return null;
+  }
+
   const currentHigh = Math.max(
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24)
   );

@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, type Transition } from "framer-motion";
 import { PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,41 +15,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-type ModelConfig = {
-  id: string;
-  name: string;
-  provider: string;
-  baseUrl: string | null;
-  apiKey: string | null;
-  capabilities: { tools: boolean; vision: boolean; reasoning: boolean };
-  reasoningEffort: string | null;
-  isDefault: boolean;
-  isTitleModel: boolean;
-};
+import { useModels } from "@/hooks/use-models";
+import { cn } from "@/lib/utils";
 
 type FormState = {
   id: string;
   name: string;
-  provider: string;
   baseUrl: string;
   apiKey: string;
-  capabilities: { tools: boolean; vision: boolean; reasoning: boolean };
-  reasoningEffort: string;
-  isDefault: boolean;
-  isTitleModel: boolean;
 };
 
 const emptyForm: FormState = {
   id: "",
   name: "",
-  provider: "",
   baseUrl: "",
   apiKey: "",
-  capabilities: { tools: true, vision: false, reasoning: false },
-  reasoningEffort: "",
-  isDefault: false,
-  isTitleModel: false,
 };
 
 const spring: Transition = { type: "spring", damping: 25, stiffness: 300 };
@@ -62,46 +42,63 @@ const fadeUp = {
 };
 
 export default function SettingsPage() {
-  const [models, setModels] = useState<ModelConfig[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { models, isLoading, mutate } = useModels();
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
-  const fetchModels = useCallback(async () => {
-    try {
-      const res = await fetch("/api/models");
-      if (res.ok) {
-        const data = await res.json();
-        setModels(data.models ?? []);
-      }
-    } catch {
-      toast.error("加载模型失败");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchModels();
-  }, [fetchModels]);
+  function invalidateModels() {
+    mutate();
+  }
 
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
+    setTestResult(null);
     setDialogOpen(true);
   }
 
-  function openEdit(model: ModelConfig) {
+  function openEdit(model: (typeof models)[number]) {
     setEditingId(model.id);
     setForm({
-      ...model,
+      id: model.id,
+      name: model.name,
       baseUrl: model.baseUrl ?? "",
       apiKey: "",
-      reasoningEffort: model.reasoningEffort ?? "",
     });
+    setTestResult(null);
     setDialogOpen(true);
+  }
+
+  async function handleTest() {
+    if (!form.baseUrl || !form.apiKey) {
+      toast.error("请先填写 Base URL 和 API Key");
+      return;
+    }
+
+    setTestLoading(true);
+    setTestResult(null);
+
+    try {
+      const res = await fetch("/api/models/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: form.baseUrl, apiKey: form.apiKey }),
+      });
+      const data = await res.json();
+      setTestResult(data);
+    } catch {
+      setTestResult({ success: false, message: "请求失败" });
+    } finally {
+      setTestLoading(false);
+    }
   }
 
   async function handleSave() {
@@ -110,13 +107,14 @@ export default function SettingsPage() {
       return;
     }
 
-    const provider = form.provider || form.id.split("/")[0] || "";
+    const provider = form.id.split("/")[0] || "";
     const payload = {
       ...form,
       provider,
-      baseUrl: form.baseUrl,
-      apiKey: form.apiKey,
-      reasoningEffort: form.reasoningEffort || null,
+      capabilities: { tools: true, vision: false, reasoning: false },
+      reasoningEffort: null,
+      isDefault: false,
+      isTitleModel: false,
     };
 
     try {
@@ -135,7 +133,7 @@ export default function SettingsPage() {
       if (res.ok) {
         toast.success(editingId ? "模型已更新" : "模型已添加");
         setDialogOpen(false);
-        fetchModels();
+        invalidateModels();
       } else {
         const data = await res.json();
         toast.error(data.error ?? "保存模型失败");
@@ -157,7 +155,7 @@ export default function SettingsPage() {
       );
       if (res.ok) {
         toast.success("模型已删除");
-        fetchModels();
+        invalidateModels();
       } else {
         toast.error("删除模型失败");
       }
@@ -168,7 +166,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-dvh items-center justify-center bg-background">
         <motion.p
@@ -194,8 +192,8 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-2xl font-semibold">模型设置</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              配置用于聊天和标题生成的 AI 模型，每个模型可设置独立的 API Key 和
-              Base URL。
+              配置用于聊天的 AI 模型，每个模型可设置独立的 API Key 和 Base
+              URL。
             </p>
           </div>
           <Button onClick={openCreate} size="sm">
@@ -212,12 +210,8 @@ export default function SettingsPage() {
               className="rounded-lg border border-dashed border-border/50 p-8 text-center"
             >
               <p className="text-muted-foreground">
-                暂未配置模型，请添加一个模型开始使用。
+                暂未配置模型，点击上方「添加模型」按钮开始使用。
               </p>
-              <Button className="mt-4" onClick={openCreate} size="sm">
-                <PlusIcon className="mr-1 size-4" />
-                添加模型
-              </Button>
             </motion.div>
           ) : (
             <div className="space-y-3">
@@ -238,38 +232,11 @@ export default function SettingsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{model.name}</span>
-                      {model.isDefault && (
-                        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                          默认
-                        </span>
-                      )}
-                      {model.isTitleModel && (
-                        <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-500">
-                          标题
-                        </span>
-                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {model.id}
                       {model.baseUrl ? ` · ${model.baseUrl}` : ""}
                     </p>
-                    <div className="mt-1 flex gap-2 text-[10px] text-muted-foreground">
-                      {model.capabilities.tools && (
-                        <span className="rounded bg-muted px-1 py-0.5">
-                          工具
-                        </span>
-                      )}
-                      {model.capabilities.vision && (
-                        <span className="rounded bg-muted px-1 py-0.5">
-                          视觉
-                        </span>
-                      )}
-                      {model.capabilities.reasoning && (
-                        <span className="rounded bg-muted px-1 py-0.5">
-                          推理
-                        </span>
-                      )}
-                    </div>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
@@ -299,6 +266,9 @@ export default function SettingsPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "编辑模型" : "添加模型"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {editingId ? "编辑模型配置" : "添加新的 AI 模型配置"}
+            </DialogDescription>
           </DialogHeader>
 
           <motion.div
@@ -309,7 +279,7 @@ export default function SettingsPage() {
             transition={{ type: "spring", damping: 25, stiffness: 320 }}
           >
             <div className="space-y-2">
-              <Label htmlFor="name">显示名称</Label>
+              <Label htmlFor="name">显示名称 *</Label>
               <Input
                 id="name"
                 onChange={(e) =>
@@ -321,7 +291,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="id">模型 ID</Label>
+              <Label htmlFor="id">模型 ID *</Label>
               <Input
                 disabled={!!editingId}
                 id="id"
@@ -355,13 +325,38 @@ export default function SettingsPage() {
                 value={form.apiKey}
               />
             </div>
+
+            {testResult && (
+              <motion.p
+                animate={{ opacity: 1 }}
+                className={cn(
+                  "text-xs",
+                  testResult.success ? "text-green-600" : "text-destructive"
+                )}
+                initial={{ opacity: 0 }}
+              >
+                {testResult.message}
+              </motion.p>
+            )}
           </motion.div>
 
-          <DialogFooter>
-            <Button onClick={() => setDialogOpen(false)} variant="ghost">
-              取消
+          <DialogFooter className="flex-row items-center justify-between sm:justify-between">
+            <Button
+              disabled={testLoading}
+              onClick={handleTest}
+              size="sm"
+              variant="outline"
+            >
+              {testLoading ? "测试中..." : "测试连接"}
             </Button>
-            <Button onClick={handleSave}>{editingId ? "更新" : "添加"}</Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setDialogOpen(false)} variant="ghost">
+                取消
+              </Button>
+              <Button onClick={handleSave}>
+                {editingId ? "更新" : "添加"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

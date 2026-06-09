@@ -17,7 +17,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import useSWR from "swr";
+import { useModels } from "@/hooks/use-models";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import {
   ModelSelector,
@@ -515,7 +515,7 @@ function PureMultimodalInput({
             />
           </PromptInputTools>
 
-          {status === "submitted" ? (
+          {status === "submitted" || status === "streaming" ? (
             <StopButton setMessages={setMessages} stop={stop} />
           ) : (
             <PromptInputSubmit
@@ -580,14 +580,7 @@ function PureAttachmentsButton({
   status: UseChatHelpers<ChatMessage>["status"];
   selectedModelId: string;
 }) {
-  const { data: modelsResponse } = useSWR(
-    `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/models`,
-    (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 3_600_000 }
-  );
-
-  const caps: Record<string, ModelCapabilities> | undefined =
-    modelsResponse?.capabilities ?? modelsResponse;
+  const { capabilities: caps } = useModels();
   const hasVision = caps?.[selectedModelId]?.vision ?? false;
 
   return (
@@ -621,30 +614,24 @@ function PureModelSelectorCompact({
   onModelChange?: (modelId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: modelsData } = useSWR(
-    `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/models`,
-    (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 3_600_000 }
-  );
-
-  const capabilities: Record<string, ModelCapabilities> | undefined =
-    modelsData?.capabilities;
-  const dynamicModels: ChatModel[] | undefined = modelsData?.models;
-  const activeModels: ChatModel[] = dynamicModels ?? [];
+  const router = useRouter();
+  const { models: activeModels, capabilities } = useModels();
 
   const selectedModel =
-    activeModels.find((m: ChatModel) => m.id === selectedModelId) ??
+    activeModels.find((m) => m.id === selectedModelId) ??
     activeModels[0];
   const [provider] = (selectedModel?.id ?? "").split("/");
 
-  if (!selectedModel) {
+  if (!selectedModel || activeModels.length === 0) {
     return (
       <Button
-        className="h-7 rounded-lg px-2 text-[12px] text-muted-foreground"
-        disabled
+        className="h-7 rounded-lg px-2 text-[12px] text-destructive"
+        onClick={() => {
+          router.push("/settings");
+        }}
         variant="ghost"
       >
-        暂无配置模型
+        请先配置模型
       </Button>
     );
   }

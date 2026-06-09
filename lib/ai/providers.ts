@@ -1,7 +1,11 @@
 import "server-only";
 
 import { createOpenAI } from "@ai-sdk/openai";
-import { getModelConfigById, getTitleModelConfig } from "@/lib/db/queries";
+import {
+  getAllModelConfigs,
+  getModelConfigById,
+  getTitleModelConfig,
+} from "@/lib/db/queries";
 
 function createClientForModel(
   baseUrl: string | null | undefined,
@@ -29,18 +33,24 @@ export async function getLanguageModel(modelId: string) {
   }
 
   const client = createClientForModel(config.baseUrl, config.apiKey);
-  return client.languageModel(config.id);
+  return client.chat(config.id);
 }
 
 export async function getTitleModel() {
   const config = await getTitleModelConfig();
 
-  if (!config) {
+  // fallback: 没有专门配置 title model 时，使用第一个已配置的模型
+  const fallbackConfig = config ?? (await getAllModelConfigs())[0];
+
+  if (!fallbackConfig) {
     throw new Error(
-      "No title model configured. Set a model as title model in Settings (/settings)."
+      "No models configured. Add a model in Settings (/settings)."
     );
   }
 
-  const client = createClientForModel(config.baseUrl, config.apiKey);
-  return client.languageModel(config.id);
+  const client = createClientForModel(
+    fallbackConfig.baseUrl,
+    fallbackConfig.apiKey
+  );
+  return client.chat(fallbackConfig.id);
 }

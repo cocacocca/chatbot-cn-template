@@ -38,7 +38,12 @@ export async function getChatModels(): Promise<ChatModel[]> {
 
 export async function getDefaultModelId(): Promise<string> {
   const config = await getDefaultModelConfig();
-  return config?.id ?? "";
+  if (config?.id) {
+    return config.id;
+  }
+  // fallback: 首个配置模型
+  const allConfigs = await getAllModelConfigs();
+  return allConfigs[0]?.id ?? "";
 }
 
 export async function getTitleModelId(): Promise<string> {
