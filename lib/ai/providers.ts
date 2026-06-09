@@ -1,30 +1,46 @@
-import { customProvider, gateway } from "ai";
-import { isTestEnvironment } from "../constants";
-import { titleModel } from "./models";
+import "server-only";
 
-export const myProvider = isTestEnvironment
-  ? (() => {
-      const { chatModel, titleModel } = require("./models.mock");
-      return customProvider({
-        languageModels: {
-          "chat-model": chatModel,
-          "title-model": titleModel,
-        },
-      });
-    })()
-  : null;
+import { createOpenAI } from "@ai-sdk/openai";
+import { getModelConfigById, getTitleModelConfig } from "@/lib/db/queries";
 
-export function getLanguageModel(modelId: string) {
-  if (isTestEnvironment && myProvider) {
-    return myProvider.languageModel(modelId);
+function createClientForModel(
+  baseUrl: string | null | undefined,
+  apiKey: string | null | undefined
+) {
+  if (!apiKey) {
+    throw new Error(
+      "API Key is required. Configure it per-model in Settings (/settings)."
+    );
   }
 
-  return gateway.languageModel(modelId);
+  return createOpenAI({
+    apiKey,
+    ...(baseUrl && { baseURL: baseUrl }),
+  });
 }
 
-export function getTitleModel() {
-  if (isTestEnvironment && myProvider) {
-    return myProvider.languageModel("title-model");
+export async function getLanguageModel(modelId: string) {
+  const config = await getModelConfigById({ id: modelId });
+
+  if (!config) {
+    throw new Error(
+      `Model "${modelId}" not found in database. Add it in Settings (/settings).`
+    );
   }
-  return gateway.languageModel(titleModel.id);
+
+  const client = createClientForModel(config.baseUrl, config.apiKey);
+  return client.languageModel(config.id);
+}
+
+export async function getTitleModel() {
+  const config = await getTitleModelConfig();
+
+  if (!config) {
+    throw new Error(
+      "No title model configured. Set a model as title model in Settings (/settings)."
+    );
+  }
+
+  const client = createClientForModel(config.baseUrl, config.apiKey);
+  return client.languageModel(config.id);
 }

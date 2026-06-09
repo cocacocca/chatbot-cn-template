@@ -134,3 +134,22 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const modelConfig = pgTable("ModelConfig", {
+  id: text("id").primaryKey().notNull(),
+  name: text("name").notNull(),
+  provider: text("provider").notNull().default("openai"),
+  baseUrl: text("baseUrl"),
+  apiKey: text("apiKey"),
+  capabilities: json("capabilities")
+    .notNull()
+    .$type<{ tools: boolean; vision: boolean; reasoning: boolean }>()
+    .default({ tools: true, vision: false, reasoning: false }),
+  reasoningEffort: text("reasoningEffort"),
+  isDefault: boolean("isDefault").notNull().default(false),
+  isTitleModel: boolean("isTitleModel").notNull().default(false),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export type ModelConfig = InferSelectModel<typeof modelConfig>;

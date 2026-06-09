@@ -1,5 +1,3 @@
-import "server-only";
-
 import {
   and,
   asc,
@@ -23,7 +21,9 @@ import {
   chat,
   type DBMessage,
   document,
+  type ModelConfig,
   message,
+  modelConfig,
   type Suggestion,
   stream,
   suggestion,
@@ -32,6 +32,7 @@ import {
   vote,
 } from "./schema";
 import { generateHashedPassword } from "./utils";
+import "server-only";
 
 const client = postgres(process.env.POSTGRES_URL ?? "");
 const db = drizzle(client);
@@ -47,13 +48,66 @@ export async function getUser(email: string): Promise<User[]> {
   }
 }
 
-export async function createUser(email: string, password: string) {
+export async function createUser(
+  email: string,
+  password: string,
+  name?: string
+) {
   const hashedPassword = generateHashedPassword(password);
 
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    return await db.insert(user).values({
+      email,
+      password: hashedPassword,
+      name: name || email.split("@")[0],
+    });
   } catch (_error) {
     throw new ChatbotError("bad_request:database", "Failed to create user");
+  }
+}
+
+export async function getUserById({
+  id,
+}: {
+  id: string;
+}): Promise<User | undefined> {
+  try {
+    const [result] = await db.select().from(user).where(eq(user.id, id));
+    return result;
+  } catch (_error) {
+    throw new ChatbotError("bad_request:database", "Failed to get user by id");
+  }
+}
+
+export async function updateUser({
+  id,
+  name,
+  image,
+}: {
+  id: string;
+  name?: string;
+  image?: string;
+}) {
+  try {
+    return await db
+      .update(user)
+      .set({
+        ...(name !== undefined && { name }),
+        ...(image !== undefined && { image }),
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, id))
+      .returning();
+  } catch (_error) {
+    throw new ChatbotError("bad_request:database", "Failed to update user");
+  }
+}
+
+export async function deleteUser({ id }: { id: string }) {
+  try {
+    return await db.delete(user).where(eq(user.id, id)).returning();
+  } catch (_error) {
+    throw new ChatbotError("bad_request:database", "Failed to delete user");
   }
 }
 
@@ -141,10 +195,7 @@ export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
 
     return { deletedCount: deletedChats.length };
   } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to delete all chats by user id"
-    );
+    throw new ChatbotError("bad_request:database", "删除所有对话失败");
   }
 }
 
@@ -627,6 +678,135 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get stream ids by chat id"
+    );
+  }
+}
+
+// Model Config CRUD
+
+export async function getAllModelConfigs(): Promise<ModelConfig[]> {
+  try {
+    return await db.select().from(modelConfig).orderBy(asc(modelConfig.name));
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get model configs"
+    );
+  }
+}
+
+export async function getModelConfigById({
+  id,
+}: {
+  id: string;
+}): Promise<ModelConfig | undefined> {
+  try {
+    const [config] = await db
+      .select()
+      .from(modelConfig)
+      .where(eq(modelConfig.id, id));
+    return config;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get model config by id"
+    );
+  }
+}
+
+export async function getDefaultModelConfig(): Promise<
+  ModelConfig | undefined
+> {
+  try {
+    const [config] = await db
+      .select()
+      .from(modelConfig)
+      .where(eq(modelConfig.isDefault, true))
+      .limit(1);
+    return config;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get default model config"
+    );
+  }
+}
+
+export async function getTitleModelConfig(): Promise<ModelConfig | undefined> {
+  try {
+    const [config] = await db
+      .select()
+      .from(modelConfig)
+      .where(eq(modelConfig.isTitleModel, true))
+      .limit(1);
+    return config;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get title model config"
+    );
+  }
+}
+
+export async function createModelConfig(config: {
+  id: string;
+  name: string;
+  provider: string;
+  baseUrl?: string;
+  apiKey?: string;
+  capabilities?: { tools: boolean; vision: boolean; reasoning: boolean };
+  reasoningEffort?: string;
+  isDefault?: boolean;
+  isTitleModel?: boolean;
+}) {
+  try {
+    return await db.insert(modelConfig).values(config).returning();
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to create model config"
+    );
+  }
+}
+
+export async function updateModelConfig({
+  id,
+  ...data
+}: {
+  id: string;
+  name?: string;
+  provider?: string;
+  baseUrl?: string | null;
+  apiKey?: string | null;
+  capabilities?: { tools: boolean; vision: boolean; reasoning: boolean };
+  reasoningEffort?: string | null;
+  isDefault?: boolean;
+  isTitleModel?: boolean;
+}) {
+  try {
+    return await db
+      .update(modelConfig)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(modelConfig.id, id))
+      .returning();
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update model config"
+    );
+  }
+}
+
+export async function deleteModelConfig({ id }: { id: string }) {
+  try {
+    return await db
+      .delete(modelConfig)
+      .where(eq(modelConfig.id, id))
+      .returning();
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to delete model config"
     );
   }
 }
