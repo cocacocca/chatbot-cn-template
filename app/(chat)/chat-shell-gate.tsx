@@ -1,0 +1,43 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { ChatShell } from "@/components/chat/shell";
+import { ActiveChatProvider } from "@/hooks/use-active-chat";
+
+const enter = {
+  initial: { opacity: 0, x: 40 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -40 },
+  transition: { type: "spring", damping: 28, stiffness: 300 },
+};
+
+export function ChatShellGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isSettings = pathname.endsWith("/settings");
+
+  return (
+    <div className="relative flex-1 overflow-hidden">
+      <AnimatePresence mode="wait">
+        {isSettings ? (
+          <motion.div
+            className="absolute inset-0 overflow-y-auto"
+            key="settings"
+            {...enter}
+          >
+            {children}
+          </motion.div>
+        ) : (
+          <motion.div className="absolute inset-0" key="chat" {...enter}>
+            <Suspense fallback={<div className="flex h-full" />}>
+              <ActiveChatProvider>
+                <ChatShell />
+              </ActiveChatProvider>
+            </Suspense>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

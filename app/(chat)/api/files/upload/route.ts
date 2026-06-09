@@ -1,7 +1,7 @@
-import { put } from "@vercel/blob";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
 import { auth } from "@/app/(auth)/auth";
 
 const FileSchema = z.object({
@@ -14,6 +14,8 @@ const FileSchema = z.object({
       message: "File type should be JPEG or PNG",
     }),
 });
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -46,14 +48,17 @@ export async function POST(request: Request) {
 
     const filename = (formData.get("file") as File).name;
     const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uniqueName = `${Date.now()}-${safeName}`;
     const fileBuffer = await file.arrayBuffer();
 
     try {
-      const data = await put(`${safeName}`, fileBuffer, {
-        access: "public",
-      });
+      await mkdir(UPLOAD_DIR, { recursive: true });
+      const filePath = join(UPLOAD_DIR, uniqueName);
+      await writeFile(filePath, Buffer.from(fileBuffer));
 
-      return NextResponse.json(data);
+      const url = `/api/files/${uniqueName}`;
+
+      return NextResponse.json({ url, name: safeName });
     } catch (_error) {
       return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }

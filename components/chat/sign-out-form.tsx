@@ -18,7 +18,7 @@ export const SignOutForm = () => {
         className="w-full px-1 py-0.5 text-left text-red-500"
         type="submit"
       >
-        Sign out
+        退出登录
       </button>
     </Form>
   );

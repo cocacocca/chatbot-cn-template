@@ -7,8 +7,9 @@ import { createUser, getUser } from "@/lib/db/queries";
 import { signIn } from "./auth";
 
 const authFormSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email("请输入有效的邮箱地址"),
+  password: z.string().min(6, "密码至少 6 位字符"),
+  name: z.string().optional(),
 });
 
 export type LoginActionState = {
@@ -59,14 +60,20 @@ export const register = async (
     const validatedData = authFormSchema.parse({
       email: formData.get("email"),
       password: formData.get("password"),
+      name: formData.get("name") || undefined,
     });
 
-    const [user] = await getUser(validatedData.email);
+    const [existingUser] = await getUser(validatedData.email);
 
-    if (user) {
+    if (existingUser) {
       return { status: "user_exists" } as RegisterActionState;
     }
-    await createUser(validatedData.email, validatedData.password);
+
+    await createUser(
+      validatedData.email,
+      validatedData.password,
+      validatedData.name
+    );
     await signIn("credentials", {
       email: validatedData.email,
       password: validatedData.password,

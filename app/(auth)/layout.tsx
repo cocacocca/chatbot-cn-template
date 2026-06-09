@@ -1,42 +1,57 @@
-import { ArrowLeftIcon } from "lucide-react";
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { SparklesIcon, VercelIcon } from "@/components/chat/icons";
-import { Preview } from "@/components/chat/preview";
+import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { SparklesIcon } from "@/components/chat/icons";
+
+function AnimatedCard({
+  children,
+  pathname,
+}: {
+  children: React.ReactNode;
+  pathname: string;
+}) {
+  return (
+    <div className="w-full overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+      <AnimatePresence mode="wait">
+        <motion.div
+          animate={{ opacity: 1, x: 0 }}
+          className="px-6 py-8"
+          exit={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: 20 }}
+          key={pathname}
+          transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
-    <div className="flex h-dvh w-screen bg-sidebar">
-      <div className="flex w-full flex-col bg-background p-8 xl:w-[600px] xl:shrink-0 xl:rounded-r-2xl xl:border-r xl:border-border/40 md:p-16">
+    <div className="flex min-h-dvh w-screen items-center justify-center bg-[var(--color-background)] px-4">
+      <div className="flex w-full max-w-[380px] flex-col items-center">
+        {/* Logo */}
         <Link
-          className="flex w-fit items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+          className="mb-8 flex size-12 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background)] shadow-sm transition-shadow hover:shadow-md"
           href="/"
         >
-          <ArrowLeftIcon className="size-3.5" />
-          Back
+          <SparklesIcon size={18} />
         </Link>
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-10">
-          <div className="flex flex-col gap-2">
-            <div className="mb-2 flex size-9 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-              <SparklesIcon size={14} />
-            </div>
-            {children}
-          </div>
-        </div>
-      </div>
 
-      <div className="hidden flex-1 flex-col overflow-hidden pl-12 xl:flex">
-        <div className="flex items-center gap-1.5 pt-8 text-[13px] text-muted-foreground/50">
-          Powered by
-          <VercelIcon size={14} />
-          <span className="font-medium text-muted-foreground">AI Gateway</span>
-        </div>
-        <div className="flex-1 pt-4">
-          <Preview />
-        </div>
+        <Suspense>
+          <AnimatedCard pathname={pathname}>{children}</AnimatedCard>
+        </Suspense>
       </div>
     </div>
   );

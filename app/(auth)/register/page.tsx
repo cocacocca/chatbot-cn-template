@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -24,16 +25,13 @@ export default function Page() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
   useEffect(() => {
     if (state.status === "user_exists") {
-      toast({ type: "error", description: "Account already exists!" });
+      toast({ type: "error", description: "该邮箱已被注册" });
     } else if (state.status === "failed") {
-      toast({ type: "error", description: "Failed to create account!" });
+      toast({ type: "error", description: "注册失败，请稍后重试" });
     } else if (state.status === "invalid_data") {
-      toast({
-        type: "error",
-        description: "Failed validating your submission!",
-      });
+      toast({ type: "error", description: "请检查输入格式" });
     } else if (state.status === "success") {
-      toast({ type: "success", description: "Account created!" });
+      toast({ type: "success", description: "注册成功！" });
       setIsSuccessful(true);
       updateSession();
       router.refresh();
@@ -47,20 +45,36 @@ export default function Page() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
-      <p className="text-sm text-muted-foreground">Get started for free</p>
-      <AuthForm action={handleSubmit} defaultEmail={email}>
-        <SubmitButton isSuccessful={isSuccessful}>Sign up</SubmitButton>
-        <p className="text-center text-[13px] text-muted-foreground">
-          {"Have an account? "}
-          <Link
-            className="text-foreground underline-offset-4 hover:underline"
-            href="/login"
-          >
-            Sign in
-          </Link>
+      <motion.div
+        animate={{ opacity: 1 }}
+        className="mb-6 flex flex-col gap-1.5"
+        initial={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h1 className="text-lg font-semibold tracking-tight">注册</h1>
+        <p className="text-[13px] text-[var(--color-muted-foreground)]">
+          创建账户，开始使用
         </p>
+      </motion.div>
+
+      <AuthForm action={handleSubmit} defaultEmail={email} showName>
+        <SubmitButton isSuccessful={isSuccessful}>注册</SubmitButton>
       </AuthForm>
+
+      <motion.p
+        animate={{ opacity: 1 }}
+        className="mt-6 text-center text-[13px] text-[var(--color-muted-foreground)]"
+        initial={{ opacity: 0 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+      >
+        已有账户？{" "}
+        <Link
+          className="text-[var(--color-foreground)] underline underline-offset-4 decoration-[var(--color-border)] hover:decoration-[var(--color-foreground)] transition-colors"
+          href="/login"
+        >
+          登录
+        </Link>
+      </motion.p>
     </>
   );
 }
