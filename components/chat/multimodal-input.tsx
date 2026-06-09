@@ -3,13 +3,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import equal from "fast-deep-equal";
-import {
-  ArrowUpIcon,
-  BrainIcon,
-  EyeIcon,
-  LockIcon,
-  WrenchIcon,
-} from "lucide-react";
+import { ArrowUpIcon, BrainIcon, EyeIcon, WrenchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
@@ -36,12 +30,7 @@ import {
   ModelSelectorName,
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
-import {
-  type ChatModel,
-  chatModels,
-  DEFAULT_CHAT_MODEL,
-  type ModelCapabilities,
-} from "@/lib/ai/models";
+import type { ChatModel, ModelCapabilities } from "@/lib/ai/model-types";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -191,9 +180,9 @@ function PureMultimodalInput({
         });
         break;
       case "purge":
-        toast("Delete all chats?", {
+        toast("删除所有对话？", {
           action: {
-            label: "Delete all",
+            label: "全部删除",
             onClick: () => {
               fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history`, {
                 method: "DELETE",
@@ -282,7 +271,7 @@ function PureMultimodalInput({
       const { error } = await response.json();
       toast.error(error);
     } catch (_error) {
-      toast.error("Failed to upload file, please try again!");
+      toast.error("文件上传失败，请重试！");
     }
   }, []);
 
@@ -381,7 +370,7 @@ function PureMultimodalInput({
             }}
             type="button"
           >
-            Cancel
+            取消
           </button>
         </div>
       )}
@@ -435,7 +424,7 @@ function PureMultimodalInput({
           if (status === "ready" || status === "error") {
             submitForm();
           } else {
-            toast.error("Please wait for the model to finish its response!");
+            toast.error("请等待模型完成回复！");
           }
         }}
       >
@@ -509,9 +498,7 @@ function PureMultimodalInput({
               onCancelEdit();
             }
           }}
-          placeholder={
-            editingMessage ? "Edit your message..." : "Ask anything..."
-          }
+          placeholder={editingMessage ? "编辑消息..." : "请输入内容..."}
           ref={textareaRef}
           value={input}
         />
@@ -641,15 +628,26 @@ function PureModelSelectorCompact({
   );
 
   const capabilities: Record<string, ModelCapabilities> | undefined =
-    modelsData?.capabilities ?? modelsData;
+    modelsData?.capabilities;
   const dynamicModels: ChatModel[] | undefined = modelsData?.models;
-  const activeModels = dynamicModels ?? chatModels;
+  const activeModels: ChatModel[] = dynamicModels ?? [];
 
   const selectedModel =
     activeModels.find((m: ChatModel) => m.id === selectedModelId) ??
-    activeModels.find((m: ChatModel) => m.id === DEFAULT_CHAT_MODEL) ??
     activeModels[0];
-  const [provider] = selectedModel.id.split("/");
+  const [provider] = (selectedModel?.id ?? "").split("/");
+
+  if (!selectedModel) {
+    return (
+      <Button
+        className="h-7 rounded-lg px-2 text-[12px] text-muted-foreground"
+        disabled
+        variant="ghost"
+      >
+        暂无配置模型
+      </Button>
+    );
+  }
 
   return (
     <ModelSelector onOpenChange={setOpen} open={open}>
@@ -664,90 +662,34 @@ function PureModelSelectorCompact({
         </Button>
       </ModelSelectorTrigger>
       <ModelSelectorContent>
-        <ModelSelectorInput placeholder="Search models..." />
+        <ModelSelectorInput placeholder="搜索模型..." />
         <ModelSelectorList>
           {(() => {
-            const curatedIds = new Set(chatModels.map((m) => m.id));
-            const allModels = dynamicModels
-              ? [
-                  ...chatModels,
-                  ...dynamicModels.filter((m) => !curatedIds.has(m.id)),
-                ]
-              : chatModels;
-
-            const grouped: Record<
-              string,
-              { model: ChatModel; curated: boolean }[]
-            > = {};
-            for (const model of allModels) {
-              const key = curatedIds.has(model.id)
-                ? "_available"
-                : model.provider;
-              if (!grouped[key]) {
-                grouped[key] = [];
+            const grouped: Record<string, { model: ChatModel }[]> = {};
+            for (const model of activeModels) {
+              if (!grouped[model.provider]) {
+                grouped[model.provider] = [];
               }
-              grouped[key].push({ model, curated: curatedIds.has(model.id) });
+              grouped[model.provider].push({ model });
             }
 
-            const sortedKeys = Object.keys(grouped).sort((a, b) => {
-              if (a === "_available") {
-                return -1;
-              }
-              if (b === "_available") {
-                return 1;
-              }
-              return a.localeCompare(b);
-            });
-
-            const providerNames: Record<string, string> = {
-              alibaba: "Alibaba",
-              anthropic: "Anthropic",
-              "arcee-ai": "Arcee AI",
-              bytedance: "ByteDance",
-              cohere: "Cohere",
-              deepseek: "DeepSeek",
-              google: "Google",
-              inception: "Inception",
-              kwaipilot: "Kwaipilot",
-              meituan: "Meituan",
-              meta: "Meta",
-              minimax: "MiniMax",
-              mistral: "Mistral",
-              moonshotai: "Moonshot",
-              morph: "Morph",
-              nvidia: "Nvidia",
-              openai: "OpenAI",
-              perplexity: "Perplexity",
-              "prime-intellect": "Prime Intellect",
-              xiaomi: "Xiaomi",
-              xai: "xAI",
-              zai: "Zai",
-            };
+            const sortedKeys = Object.keys(grouped).sort((a, b) =>
+              a.localeCompare(b)
+            );
 
             return sortedKeys.map((key) => (
-              <ModelSelectorGroup
-                heading={
-                  key === "_available"
-                    ? "Available"
-                    : (providerNames[key] ?? key)
-                }
-                key={key}
-              >
-                {grouped[key].map(({ model, curated }) => {
+              <ModelSelectorGroup heading={key} key={key}>
+                {grouped[key].map(({ model }) => {
                   const logoProvider = model.id.split("/")[0];
                   return (
                     <ModelSelectorItem
                       className={cn(
                         "flex w-full",
                         model.id === selectedModel.id &&
-                          "border-b border-dashed border-foreground/50",
-                        !curated && "opacity-40 cursor-default"
+                          "border-b border-dashed border-foreground/50"
                       )}
                       key={model.id}
                       onSelect={() => {
-                        if (!curated) {
-                          return;
-                        }
                         onModelChange?.(model.id);
                         setCookie("chat-model", model.id);
                         setOpen(false);
@@ -772,9 +714,6 @@ function PureModelSelectorCompact({
                         )}
                         {capabilities?.[model.id]?.reasoning && (
                           <BrainIcon className="size-3.5" />
-                        )}
-                        {!curated && (
-                          <LockIcon className="size-3 text-muted-foreground/50" />
                         )}
                       </div>
                     </ModelSelectorItem>

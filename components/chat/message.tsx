@@ -153,7 +153,7 @@ const PurePreviewMessage = ({
               <ToolHeader state="output-denied" type="tool-getWeather" />
               <ToolContent>
                 <div className="px-4 py-3 text-muted-foreground text-sm">
-                  Weather lookup was denied.
+                  天气查询已被拒绝。
                 </div>
               </ToolContent>
             </Tool>
@@ -191,12 +191,12 @@ const PurePreviewMessage = ({
                       addToolApprovalResponse({
                         id: approvalId,
                         approved: false,
-                        reason: "User denied weather lookup",
+                        reason: "用户拒绝了天气查询",
                       });
                     }}
                     type="button"
                   >
-                    Deny
+                    拒绝
                   </button>
                   <button
                     className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground text-sm transition-colors hover:bg-primary/90"
@@ -208,7 +208,7 @@ const PurePreviewMessage = ({
                     }}
                     type="button"
                   >
-                    Allow
+                    允许
                   </button>
                 </div>
               )}
@@ -227,7 +227,7 @@ const PurePreviewMessage = ({
             className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
             key={toolCallId}
           >
-            Error creating document: {String(part.output.error)}
+            创建文档出错：{String(part.output.error)}
           </div>
         );
       }
@@ -250,7 +250,7 @@ const PurePreviewMessage = ({
             className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
             key={toolCallId}
           >
-            Error updating document: {String(part.output.error)}
+            更新文档出错：{String(part.output.error)}
           </div>
         );
       }
@@ -284,7 +284,7 @@ const PurePreviewMessage = ({
                 output={
                   "error" in part.output ? (
                     <div className="rounded border p-2 text-red-500">
-                      Error: {String(part.output.error)}
+                      错误：{String(part.output.error)}
                     </div>
                   ) : (
                     <DocumentToolResult
@@ -318,7 +318,7 @@ const PurePreviewMessage = ({
   const content = isThinking ? (
     <div className="flex h-[calc(13px*1.65)] items-center text-[13px] leading-[1.65]">
       <Shimmer className="font-medium" duration={1}>
-        Thinking...
+        思考中...
       </Shimmer>
     </div>
   ) : (
@@ -378,7 +378,7 @@ export const ThinkingMessage = () => {
 
         <div className="flex h-[calc(13px*1.65)] items-center text-[13px] leading-[1.65]">
           <Shimmer className="font-medium" duration={1}>
-            Thinking...
+            思考中...
           </Shimmer>
         </div>
       </div>

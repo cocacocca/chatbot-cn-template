@@ -42,7 +42,7 @@ export const SuggestionDialog = ({
               <div className="flex size-5 items-center justify-center rounded-md bg-muted/60 text-muted-foreground ring-1 ring-border/50">
                 <SparklesIcon size={10} />
               </div>
-              <div className="font-medium">Suggestion</div>
+              <div className="font-medium">建议</div>
             </div>
             <button
               className="flex size-6 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -61,14 +61,14 @@ export const SuggestionDialog = ({
               onClick={onApply}
               variant="outline"
             >
-              Apply
+              应用
             </Button>
             <Button
               className="w-fit rounded-full px-3 py-1.5"
               onClick={onClose}
               variant="ghost"
             >
-              Dismiss
+              忽略
             </Button>
           </div>
         </motion.div>

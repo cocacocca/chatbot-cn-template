@@ -397,7 +397,7 @@ export function Weather({
                   key={time}
                 >
                   <div className="font-medium text-white/70 text-xs">
-                    {index === 0 ? "Now" : format(hourTime, "ha")}
+                    {index === 0 ? "现在" : format(hourTime, "ha")}
                   </div>
 
                   <div
@@ -420,11 +420,11 @@ export function Weather({
 
         <div className="mt-2 flex justify-between text-white/60 text-xs">
           <div>
-            Sunrise:{" "}
+            日出：{" "}
             {format(new Date(weatherAtLocation.daily.sunrise[0]), "h:mm a")}
           </div>
           <div>
-            Sunset:{" "}
+            日落：{" "}
             {format(new Date(weatherAtLocation.daily.sunset[0]), "h:mm a")}
           </div>
         </div>

@@ -29,7 +29,7 @@ export const PreviewAttachment = ({
         />
       ) : (
         <div className="flex size-full items-center justify-center text-muted-foreground text-xs">
-          File
+          文件
         </div>
       )}
 

@@ -83,7 +83,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                 setTheme(resolvedTheme === "dark" ? "light" : "dark")
               }
             >
-              {`Toggle ${resolvedTheme === "light" ? "dark" : "light"} mode`}
+              {resolvedTheme === "light" ? "切换深色模式" : "切换浅色模式"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
@@ -94,7 +94,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                     toast({
                       type: "error",
                       description:
-                        "Checking authentication status, please try again!",
+                        "正在检查登录状态，请重试！",
                     });
 
                     return;
@@ -110,7 +110,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                 }}
                 type="button"
               >
-                {isGuest ? "Login to your account" : "Sign out"}
+                {isGuest ? "登录账户" : "退出登录"}
               </button>
             </DropdownMenuItem>
           </DropdownMenuContent>

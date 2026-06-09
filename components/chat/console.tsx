@@ -150,7 +150,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
                   <Spinner className="size-3.5" />
                   <span className="text-muted-foreground">
                     {consoleOutput.status === "in_progress"
-                      ? "Initializing..."
+                      ? "初始化中..."
                       : consoleOutput.status === "loading_packages"
                         ? consoleOutput.contents.map((content) =>
                             content.type === "text" ? content.value : null

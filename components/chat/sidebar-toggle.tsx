@@ -28,7 +28,7 @@ export function SidebarToggle({
         </Button>
       </TooltipTrigger>
       <TooltipContent align="start" className="hidden md:block">
-        Toggle Sidebar
+        切换侧边栏
       </TooltipContent>
     </Tooltip>
   );

@@ -259,7 +259,7 @@ function SidebarTrigger({
       {...props}
     >
       <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">切换侧边栏</span>
     </Button>
   )
 }
@@ -278,14 +278,14 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
     >
       <button
         data-sidebar="rail"
-        aria-label="Toggle Sidebar"
+        aria-label="切换侧边栏"
         tabIndex={-1}
         onClick={toggleSidebar}
         className="absolute inset-y-0 left-0 w-4 cursor-w-resize [[data-side=left][data-state=collapsed]_&]:cursor-e-resize"
         {...props}
       />
       <button
-        aria-label="Toggle Sidebar"
+        aria-label="切换侧边栏"
         tabIndex={-1}
         onClick={toggleSidebar}
         className={cn(
@@ -294,7 +294,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         )}
       />
       <button
-        aria-label="Toggle Sidebar"
+        aria-label="切换侧边栏"
         tabIndex={-1}
         onClick={toggleSidebar}
         className={cn(

@@ -319,18 +319,18 @@ function PureArtifact({
                 {isContentDirty ? (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <div className="size-1.5 animate-pulse rounded-full bg-amber-500" />
-                    Saving...
+                    保存中...
                   </div>
                 ) : document ? (
                   <div className="text-xs text-muted-foreground">
-                    {`Updated ${formatDistance(new Date(document.createdAt), new Date(), { addSuffix: true })}`}
+                    {`更新于 ${formatDistance(new Date(document.createdAt), new Date(), { addSuffix: true })}`}
                   </div>
                 ) : artifact.status === "streaming" ? (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <div className="animate-spin">
                       <LoaderIcon size={12} />
                     </div>
-                    Generating...
+                    生成中...
                   </div>
                 ) : (
                   <div className="h-3 w-24 animate-pulse rounded bg-muted-foreground/10" />

@@ -24,10 +24,10 @@ export function Preview() {
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-8">
         <div className="text-center">
           <h2 className="text-xl font-semibold tracking-tight">
-            What can I help with?
+            有什么可以帮你的？
           </h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Ask a question, write code, or explore ideas.
+            你可以输入你的问题、编写代码或探索想法。
           </p>
         </div>
 
@@ -51,7 +51,7 @@ export function Preview() {
           onClick={() => handleAction()}
           type="button"
         >
-          Ask anything...
+          输入你的问题...
         </button>
       </div>
     </div>

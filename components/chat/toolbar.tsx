@@ -281,7 +281,7 @@ const createFixErrorTool = (
   documentId?: string
 ): ArtifactToolbarItem => ({
   icon: <WrenchIcon className="size-4" />,
-  description: "Fix error",
+  description: "修复错误",
   onClick: ({ sendMessage: send }) => {
     send({
       role: "user",

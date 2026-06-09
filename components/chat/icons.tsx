@@ -284,9 +284,16 @@ export const FileIcon = ({ size = 16 }: { size?: number }) => {
   );
 };
 
-export const LoaderIcon = ({ size = 16 }: { size?: number }) => {
+export const LoaderIcon = ({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) => {
   return (
     <svg
+      className={className}
       height={size}
       strokeLinejoin="round"
       style={{ color: "currentcolor" }}
@@ -870,8 +877,15 @@ export const ChevronDownIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
+export const SparklesIcon = ({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) => (
   <svg
+    className={className}
     height={size}
     strokeLinejoin="round"
     style={{ color: "currentcolor" }}
