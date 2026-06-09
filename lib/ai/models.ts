@@ -30,7 +30,8 @@ export async function getChatModels(): Promise<ChatModel[]> {
     provider: c.provider,
     description: `${c.name} by ${c.provider}`,
     baseUrl: c.baseUrl,
-    reasoningEffort: (c.reasoningEffort as ChatModel["reasoningEffort"]) ?? undefined,
+    reasoningEffort:
+      (c.reasoningEffort as ChatModel["reasoningEffort"]) ?? undefined,
     capabilities: c.capabilities as ModelCapabilities,
   }));
 }

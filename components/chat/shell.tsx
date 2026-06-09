@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useActiveChat } from "@/hooks/use-active-chat";
 import {
   initialArtifactData,
   useArtifact,
@@ -8,7 +9,6 @@ import {
 } from "@/hooks/use-artifact";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useActiveChat } from "@/hooks/use-active-chat";
 import { Artifact } from "./artifact";
 import { ChatHeader } from "./chat-header";
 import { DataStreamHandler } from "./data-stream-handler";

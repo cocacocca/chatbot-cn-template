@@ -1,11 +1,11 @@
 import { auth } from "@/app/(auth)/auth";
+import { getModelCapabilitiesMap } from "@/lib/ai/models";
 import {
   createModelConfig,
   deleteModelConfig,
   getAllModelConfigs,
   updateModelConfig,
 } from "@/lib/db/queries";
-import { getModelCapabilitiesMap } from "@/lib/ai/models";
 
 export async function GET() {
   const session = await auth();
@@ -30,7 +30,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, name, provider, baseUrl, apiKey, capabilities, reasoningEffort, isDefault, isTitleModel } = body;
+    const {
+      id,
+      name,
+      provider,
+      baseUrl,
+      apiKey,
+      capabilities,
+      reasoningEffort,
+      isDefault,
+      isTitleModel,
+    } = body;
 
     if (!id || !name || !provider) {
       return Response.json(
@@ -45,14 +55,18 @@ export async function POST(request: Request) {
       provider,
       baseUrl: baseUrl || undefined,
       apiKey: apiKey || undefined,
-      capabilities: capabilities || { tools: true, vision: false, reasoning: false },
+      capabilities: capabilities || {
+        tools: true,
+        vision: false,
+        reasoning: false,
+      },
       reasoningEffort: reasoningEffort || undefined,
       isDefault: isDefault ?? false,
       isTitleModel: isTitleModel ?? false,
     });
 
     return Response.json(result, { status: 201 });
-  } catch (error) {
+  } catch (_error) {
     return Response.json(
       { error: "Failed to create model config" },
       { status: 500 }
@@ -77,7 +91,7 @@ export async function PUT(request: Request) {
     const result = await updateModelConfig({ id, ...data });
 
     return Response.json(result);
-  } catch (error) {
+  } catch (_error) {
     return Response.json(
       { error: "Failed to update model config" },
       { status: 500 }
@@ -101,7 +115,7 @@ export async function DELETE(request: Request) {
   try {
     const result = await deleteModelConfig({ id });
     return Response.json(result);
-  } catch (error) {
+  } catch (_error) {
     return Response.json(
       { error: "Failed to delete model config" },
       { status: 500 }

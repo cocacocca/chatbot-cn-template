@@ -14,9 +14,7 @@ const getActionText = (
     case "update":
       return tense === "present" ? "更新中" : "已更新";
     case "request-suggestions":
-      return tense === "present"
-        ? "添加建议中"
-        : "已添加建议到";
+      return tense === "present" ? "添加建议中" : "已添加建议到";
     default:
       return null;
   }
@@ -40,9 +38,7 @@ function PureDocumentToolResult({
       className="flex w-fit cursor-pointer flex-row items-center gap-2 rounded-xl border bg-background px-3 py-2"
       onClick={(event) => {
         if (isReadonly) {
-          toast.error(
-            "暂不支持查看共享对话中的文件。"
-          );
+          toast.error("暂不支持查看共享对话中的文件。");
           return;
         }
 
@@ -106,9 +102,7 @@ function PureDocumentToolCall({
       className="cursor pointer flex w-fit flex-row items-start justify-between gap-3 rounded-xl border px-3 py-2"
       onClick={(event) => {
         if (isReadonly) {
-          toast.error(
-            "暂不支持查看共享对话中的文件。"
-          );
+          toast.error("暂不支持查看共享对话中的文件。");
           return;
         }
 

@@ -93,8 +93,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                   if (status === "loading") {
                     toast({
                       type: "error",
-                      description:
-                        "正在检查登录状态，请重试！",
+                      description: "正在检查登录状态，请重试！",
                     });
 
                     return;
