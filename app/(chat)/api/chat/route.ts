@@ -8,8 +8,8 @@ import {
 } from "ai";
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
-import { auth, type UserType } from "@/app/(auth)/auth";
-import { entitlementsByUserType } from "@/lib/ai/entitlements";
+import { auth } from "@/app/(auth)/auth";
+import { entitlements } from "@/lib/ai/entitlements";
 import {
   getChatModels,
   getDefaultModelId,
@@ -78,14 +78,12 @@ export async function POST(request: Request) {
     const defaultId = await getDefaultModelId();
     const chatModel = allowed ? selectedChatModel : defaultId;
 
-    const userType: UserType = session.user.type;
-
     const messageCount = await getMessageCountByUserId({
       id: session.user.id,
       differenceInHours: 1,
     });
 
-    if (messageCount > entitlementsByUserType[userType].maxMessagesPerHour) {
+    if (messageCount > entitlements.maxMessagesPerHour) {
       return new ChatbotError("rate_limit:chat").toResponse();
     }
 
