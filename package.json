@@ -3,9 +3,9 @@
   "version": "3.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev --turbo --port 30000",
     "build": "tsx lib/db/migrate && next build",
-    "start": "next start",
+    "start": "next start --port 30000",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "db:generate": "drizzle-kit generate",
