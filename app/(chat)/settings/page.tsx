@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -377,10 +378,10 @@ export default function SettingsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定要删除此模型吗？此操作不可撤销。
+            </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            确定要删除此模型吗？此操作不可撤销。
-          </p>
           <DialogFooter>
             <Button onClick={() => setDeleteId(null)} variant="ghost">
               取消
