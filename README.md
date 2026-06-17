@@ -24,7 +24,7 @@
 - [AI SDK](https://ai-sdk.dev/docs/introduction)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
-  - Supports OpenAI, Anthropic, Google, xAI, and other model providers via AI Gateway
+  - Supports OpenAI, Anthropic, Google, xAI, and other OpenAI-compatible model providers
 - [shadcn/ui](https://ui.shadcn.com)
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
@@ -36,13 +36,15 @@
 
 ## Model Providers
 
-This template uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to access multiple AI models through a unified interface. Models are configured in `lib/ai/models.ts` with per-model provider routing. Included models: Mistral, Moonshot, DeepSeek, OpenAI, and xAI.
+This template supports multiple AI models through an OpenAI-compatible interface. Models are managed in `/settings` (stored in the Supabase `cct_model_config` table) with per-model `baseUrl` and `apiKey` routing. When no model is configured in the database, the AI pipeline falls back to a single default model configured via `OPENAI_` environment variables.
 
-### AI Gateway Authentication
+### Default Model Fallback
 
-**For Vercel deployments**: Authentication is handled automatically via OIDC tokens.
+If the database has no model configurations, the app uses the following environment variables as a default fallback (OpenAI-compatible):
 
-**For non-Vercel deployments**: You need to provide an AI Gateway API key by setting the `AI_GATEWAY_API_KEY` environment variable in your `.env.local` file.
+- `OPENAI_API_KEY` - API key for the default model
+- `OPENAI_BASE_MODEL` - Default model id (e.g. `gpt-4o-mini`)
+- `OPENAI_BASE_URL` - OpenAI-compatible base URL (e.g. `https://api.openai.com/v1`)
 
 With the [AI SDK](https://ai-sdk.dev/docs/introduction), you can also switch to direct LLM providers like [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://ai-sdk.dev/providers/ai-sdk-providers) with just a few lines of code.
 
@@ -58,7 +60,7 @@ You can deploy your own version of Chatbot to Vercel with one click:
    - `NEXT_PUBLIC_SUPABASE_URL` - Project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Anon (public) key
    - `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-side only)
-2. Obtain an `AI_GATEWAY_API_KEY` from the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) (required for non-Vercel deployments).
+2. (Optional) Prepare an OpenAI-compatible API key and model id for the default fallback (`OPENAI_API_KEY`, `OPENAI_BASE_MODEL`, `OPENAI_BASE_URL`). Required only if you do not configure any model in `/settings`.
 
 ### Environment Variables
 
@@ -67,7 +69,9 @@ You can deploy your own version of Chatbot to Vercel with one click:
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (public) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
-| `AI_GATEWAY_API_KEY` | AI Gateway API key |
+| `OPENAI_API_KEY` | Default fallback API key (used when DB has no model config) |
+| `OPENAI_BASE_MODEL` | Default fallback model id (e.g. `gpt-4o-mini`) |
+| `OPENAI_BASE_URL` | Default fallback OpenAI-compatible base URL |
 
 ## Running locally
 
@@ -76,12 +80,14 @@ You will need to use the environment variables [defined in `.env.example`](.env.
 > Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI and authentication provider accounts.
 
 1. Create a [Supabase](https://supabase.com) project and obtain your project URL, anon key, and service role key from the project settings.
-2. Obtain an `AI_GATEWAY_API_KEY` from the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) (required for non-Vercel deployments).
+2. (Optional) Prepare an OpenAI-compatible API key and model id for the default fallback (`OPENAI_API_KEY`, `OPENAI_BASE_MODEL`, `OPENAI_BASE_URL`). Required only if you do not configure any model in `/settings`.
 3. Copy `.env.example` to `.env` and fill in the values:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `AI_GATEWAY_API_KEY`
+   - `OPENAI_API_KEY`
+   - `OPENAI_BASE_MODEL`
+   - `OPENAI_BASE_URL`
 4. Apply the database schema to your Supabase project:
    ```bash
    pnpm db:push

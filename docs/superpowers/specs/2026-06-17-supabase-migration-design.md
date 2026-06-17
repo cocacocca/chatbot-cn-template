@@ -430,8 +430,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# AI（保留）
-AI_GATEWAY_API_KEY=your-ai-gateway-key
+# AI（当数据库无模型配置时作为默认 fallback）
+OPENAI_API_KEY=sk-xxx
+OPENAI_BASE_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
 
 # 移除：AUTH_SECRET / POSTGRES_URL / REDIS_URL / UPLOAD_DIR
 ```
