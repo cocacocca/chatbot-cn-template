@@ -175,7 +175,7 @@ function PureArtifact({
             throw new Error("User not authenticated");
           }
 
-          const { error } = await supabase.from("document").insert({
+          const { error } = await supabase.from("cct_document").insert({
             id: artifact.documentId,
             created_at: new Date().toISOString(),
             user_id: user.id,

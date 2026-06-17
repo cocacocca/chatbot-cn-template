@@ -11,7 +11,7 @@ export function useChatHistory(limit = 100) {
     "chat-history",
     async () => {
       const { data, error } = await supabase
-        .from("chat")
+        .from("cct_chat")
         .select("id, title, visibility, created_at")
         .order("created_at", { ascending: false })
         .limit(limit);

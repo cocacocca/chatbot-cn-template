@@ -51,7 +51,7 @@ function toModelConfig(row: ModelConfigRow): ModelConfig {
 export async function getAllModelConfigsForClient() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("model_config")
+    .from("cct_model_config")
     .select("*")
     .order("created_at", { ascending: true });
 
@@ -70,7 +70,7 @@ export async function getAllModelConfigsForClient() {
 export async function getAllModelConfigs(): Promise<ModelConfig[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("model_config")
+    .from("cct_model_config")
     .select("*")
     .order("created_at", { ascending: true });
 
@@ -85,7 +85,7 @@ export async function getModelConfigById(
 ): Promise<ModelConfig | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("model_config")
+    .from("cct_model_config")
     .select("*")
     .eq("id", id)
     .single();
@@ -103,7 +103,7 @@ export async function getModelConfigById(
 export async function getDefaultModelConfig(): Promise<ModelConfig | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("model_config")
+    .from("cct_model_config")
     .select("*")
     .eq("is_default", true)
     .single();
@@ -121,7 +121,7 @@ export async function getDefaultModelConfig(): Promise<ModelConfig | null> {
 export async function getTitleModelConfig(): Promise<ModelConfig | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("model_config")
+    .from("cct_model_config")
     .select("*")
     .eq("is_title_model", true)
     .single();
@@ -167,7 +167,7 @@ export async function createModelConfig(config: {
     is_title_model: isTitleModel,
   };
   const { data, error } = await supabase
-    .from("model_config")
+    .from("cct_model_config")
     .insert(row)
     .select()
     .single();
@@ -223,8 +223,8 @@ export async function updateModelConfig(
   }
 
   const { data, error } = await supabase
-    .from("model_config")
-    .update(row as Database["public"]["Tables"]["model_config"]["Update"])
+    .from("cct_model_config")
+    .update(row as Database["public"]["Tables"]["cct_model_config"]["Update"])
     .eq("id", id)
     .select()
     .single();
@@ -237,7 +237,10 @@ export async function updateModelConfig(
 
 export async function deleteModelConfig(id: string) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("model_config").delete().eq("id", id);
+  const { error } = await supabase
+    .from("cct_model_config")
+    .delete()
+    .eq("id", id);
   if (error) {
     throw error;
   }

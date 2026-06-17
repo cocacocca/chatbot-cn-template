@@ -94,7 +94,7 @@ export const VersionFooter = ({
               );
               const supabase = createClient();
               const { error } = await supabase
-                .from("document")
+                .from("cct_document")
                 .delete()
                 .eq("id", artifact.documentId)
                 .lte("created_at", timestamp);

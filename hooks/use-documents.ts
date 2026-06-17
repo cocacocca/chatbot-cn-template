@@ -9,7 +9,7 @@ export function useDocuments(documentId: string) {
 
   return useSWR<Document[]>(["documents", documentId], async () => {
     const { data, error } = await supabase
-      .from("document")
+      .from("cct_document")
       .select("id, created_at, content, kind, title")
       .eq("id", documentId)
       .order("created_at", { ascending: true });
@@ -34,7 +34,7 @@ export function useLatestDocument(documentId: string) {
 
   return useSWR<Document>(["document-latest", documentId], async () => {
     const { data, error } = await supabase
-      .from("document_latest")
+      .from("cct_document_latest")
       .select("*")
       .eq("id", documentId)
       .single();

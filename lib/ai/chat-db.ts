@@ -13,7 +13,7 @@ export async function saveChat({
   visibility: "public" | "private";
 }) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("chat").upsert(
+  const { error } = await supabase.from("cct_chat").upsert(
     {
       id,
       user_id: userId,
@@ -43,7 +43,7 @@ export async function saveMessages(
     chat_id: chatId,
     ...(createdAt && { created_at: createdAt.toISOString() }),
   }));
-  const { error } = await supabase.from("message").insert(rows);
+  const { error } = await supabase.from("cct_message").insert(rows);
   if (error) {
     throw error;
   }
@@ -55,7 +55,7 @@ export async function deleteMessagesByChatIdAfterTimestamp(
 ) {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("message")
+    .from("cct_message")
     .delete()
     .eq("chat_id", chatId)
     .gte("created_at", timestamp.toISOString());

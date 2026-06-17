@@ -173,7 +173,7 @@ function PureMultimodalInput({
                 const { createClient } = await import("@/lib/supabase/client");
                 const supabase = createClient();
                 const { error } = await supabase
-                  .from("chat")
+                  .from("cct_chat")
                   .delete()
                   .eq("id", chatId);
                 if (error) {
@@ -197,7 +197,7 @@ function PureMultimodalInput({
                 const { createClient } = await import("@/lib/supabase/client");
                 const supabase = createClient();
                 const { error } = await supabase
-                  .from("chat")
+                  .from("cct_chat")
                   .delete()
                   .neq("id", "");
                 if (error) {

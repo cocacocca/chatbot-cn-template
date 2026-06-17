@@ -2,7 +2,7 @@
 export type Database = {
   public: {
     Tables: {
-      user_profile: {
+      cct_user_profile: {
         Row: {
           id: string;
           name: string | null;
@@ -24,7 +24,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      chat: {
+      cct_chat: {
         Row: {
           id: string;
           user_id: string;
@@ -44,7 +44,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      message: {
+      cct_message: {
         Row: {
           id: string;
           chat_id: string;
@@ -67,7 +67,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      vote: {
+      cct_vote: {
         Row: {
           chat_id: string;
           message_id: string;
@@ -83,7 +83,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      document: {
+      cct_document: {
         Row: {
           id: string;
           created_at: string;
@@ -107,7 +107,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      suggestion: {
+      cct_suggestion: {
         Row: {
           id: string;
           document_id: string;
@@ -134,7 +134,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      model_config: {
+      cct_model_config: {
         Row: {
           id: string;
           provider: string;
@@ -171,7 +171,7 @@ export type Database = {
       };
     };
     Views: {
-      document_latest: {
+      cct_document_latest: {
         Row: {
           id: string;
           created_at: string;
@@ -184,7 +184,7 @@ export type Database = {
       };
     };
     Functions: {
-      get_message_count_by_user_id: {
+      cct_get_message_count_by_user_id: {
         Args: {
           since?: string;
         };

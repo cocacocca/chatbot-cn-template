@@ -84,11 +84,15 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       const supabase = createClient();
       const [messagesRes, chatRes] = await Promise.all([
         supabase
-          .from("message")
+          .from("cct_message")
           .select("*")
           .eq("chat_id", chatId)
           .order("created_at", { ascending: true }),
-        supabase.from("chat").select("visibility").eq("id", chatId).single(),
+        supabase
+          .from("cct_chat")
+          .select("visibility")
+          .eq("id", chatId)
+          .single(),
       ]);
       if (messagesRes.error) {
         throw messagesRes.error;

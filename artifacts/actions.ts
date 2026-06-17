@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function getSuggestions({ documentId }: { documentId: string }) {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("suggestion")
+    .from("cct_suggestion")
     .select(
       "id, document_id, document_created_at, user_id, original_text, suggested_text, is_resolved, created_at"
     )

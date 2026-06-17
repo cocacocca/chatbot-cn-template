@@ -42,7 +42,7 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
 
   const adminClient = createAdminClient();
   const { data: message, error: msgError } = await adminClient
-    .from("message")
+    .from("cct_message")
     .select("*")
     .eq("id", id)
     .single();
@@ -52,7 +52,7 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
   }
 
   const { data: chat } = await adminClient
-    .from("chat")
+    .from("cct_chat")
     .select("*")
     .eq("id", message.chat_id)
     .single();
@@ -84,7 +84,7 @@ export async function updateChatVisibility({
 
   const adminClient = createAdminClient();
   const { data: chat } = await adminClient
-    .from("chat")
+    .from("cct_chat")
     .select("*")
     .eq("id", chatId)
     .single();
@@ -94,7 +94,7 @@ export async function updateChatVisibility({
   }
 
   const { error } = await adminClient
-    .from("chat")
+    .from("cct_chat")
     .update({ visibility })
     .eq("id", chatId);
   if (error) {

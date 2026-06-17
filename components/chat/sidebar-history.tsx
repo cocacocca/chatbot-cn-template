@@ -107,14 +107,14 @@ async function fetchChatHistoryPage(key: string): Promise<ChatHistory> {
   const endingBefore = params.get("ending_before");
 
   let query = supabase
-    .from("chat")
+    .from("cct_chat")
     .select("id, title, visibility, created_at")
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE + 1);
 
   if (endingBefore) {
     const { data: cursorChat } = await supabase
-      .from("chat")
+      .from("cct_chat")
       .select("created_at")
       .eq("id", endingBefore)
       .single();
@@ -197,7 +197,7 @@ export function SidebarHistory() {
     try {
       const supabase = createClient();
       const { error } = await supabase
-        .from("chat")
+        .from("cct_chat")
         .delete()
         .eq("id", chatToDelete as string);
       if (error) {

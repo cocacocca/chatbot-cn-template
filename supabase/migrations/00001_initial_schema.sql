@@ -1,8 +1,8 @@
 -- 启用所需扩展
 create extension if not exists "pgcrypto";
 
--- ---------- public.user_profile ----------
-create table public.user_profile (
+-- ---------- public.cct_user_profile ----------
+create table public.cct_user_profile (
   id uuid primary key references auth.users(id) on delete cascade,
   name text,
   image text,
@@ -11,25 +11,25 @@ create table public.user_profile (
   updated_at timestamptz not null default now()
 );
 
--- 注册时自动创建 user_profile 的触发器
-create or replace function public.handle_new_user()
+-- 注册时自动创建 cct_user_profile 的触发器
+create or replace function public.cct_handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.user_profile (id, name, image)
+  insert into public.cct_user_profile (id, name, image)
   values (new.id, new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'image');
   return new;
 end;
 $$;
 
-create trigger on_auth_user_created
+create trigger cct_on_auth_user_created
   after insert on auth.users
-  for each row execute function public.handle_new_user();
+  for each row execute function public.cct_handle_new_user();
 
--- ---------- public.chat ----------
-create table public.chat (
+-- ---------- public.cct_chat ----------
+create table public.cct_chat (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   title text,
@@ -38,30 +38,30 @@ create table public.chat (
   created_at timestamptz not null default now()
 );
 
-create index on public.chat (user_id, created_at desc);
+create index on public.cct_chat (user_id, created_at desc);
 
--- ---------- public.message ----------
-create table public.message (
+-- ---------- public.cct_message ----------
+create table public.cct_message (
   id uuid primary key default gen_random_uuid(),
-  chat_id uuid not null references public.chat(id) on delete cascade,
+  chat_id uuid not null references public.cct_chat(id) on delete cascade,
   role varchar(20) not null,
   parts json,
   attachments json,
   created_at timestamptz not null default now()
 );
 
-create index on public.message (chat_id, created_at asc);
+create index on public.cct_message (chat_id, created_at asc);
 
--- ---------- public.vote ----------
-create table public.vote (
-  chat_id uuid not null references public.chat(id) on delete cascade,
-  message_id uuid not null references public.message(id) on delete cascade,
+-- ---------- public.cct_vote ----------
+create table public.cct_vote (
+  chat_id uuid not null references public.cct_chat(id) on delete cascade,
+  message_id uuid not null references public.cct_message(id) on delete cascade,
   is_upvoted boolean not null,
   primary key (chat_id, message_id)
 );
 
--- ---------- public.document ----------
-create table public.document (
+-- ---------- public.cct_document ----------
+create table public.cct_document (
   id uuid not null,
   created_at timestamptz not null default now(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -72,10 +72,10 @@ create table public.document (
   primary key (id, created_at)
 );
 
-create index on public.document (user_id, created_at desc);
+create index on public.cct_document (user_id, created_at desc);
 
--- ---------- public.suggestion ----------
-create table public.suggestion (
+-- ---------- public.cct_suggestion ----------
+create table public.cct_suggestion (
   id uuid primary key default gen_random_uuid(),
   document_id uuid not null,
   document_created_at timestamptz not null,
@@ -85,11 +85,11 @@ create table public.suggestion (
   is_resolved boolean not null default false,
   created_at timestamptz not null default now(),
   foreign key (document_id, document_created_at)
-    references public.document(id, created_at) on delete cascade
+    references public.cct_document(id, created_at) on delete cascade
 );
 
--- ---------- public.model_config ----------
-create table public.model_config (
+-- ---------- public.cct_model_config ----------
+create table public.cct_model_config (
   id text primary key,
   provider text not null,
   base_url text,

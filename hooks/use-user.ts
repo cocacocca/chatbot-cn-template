@@ -33,7 +33,7 @@ export function useUser() {
 
       if (user) {
         const { data } = await supabase
-          .from("user_profile")
+          .from("cct_user_profile")
           .select("*")
           .eq("id", user.id)
           .single();

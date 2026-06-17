@@ -12,7 +12,7 @@ export async function voteMessage({
 }) {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("vote")
+    .from("cct_vote")
     .upsert(
       { chat_id: chatId, message_id: messageId, is_upvoted: isUpvoted },
       { onConflict: "chat_id,message_id" }
@@ -24,7 +24,9 @@ export async function voteMessage({
 
 export async function getMessageCountByUserId() {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("get_message_count_by_user_id");
+  const { data, error } = await supabase.rpc(
+    "cct_get_message_count_by_user_id"
+  );
   if (error) {
     throw error;
   }

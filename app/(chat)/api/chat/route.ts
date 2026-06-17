@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     // 查询 chat 是否存在
     const { data: chat } = await adminClient
-      .from("chat")
+      .from("cct_chat")
       .select("*")
       .eq("id", id)
       .single();
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
       const { data: dbMessages } = await adminClient
-        .from("message")
+        .from("cct_message")
         .select("*")
         .eq("chat_id", id)
         .order("created_at", { ascending: true });
@@ -231,7 +231,7 @@ export async function POST(request: Request) {
           try {
             const title = await titlePromise;
             dataStream.write({ type: "data-chat-title", data: title });
-            await adminClient.from("chat").update({ title }).eq("id", id);
+            await adminClient.from("cct_chat").update({ title }).eq("id", id);
           } catch (_) {
             /* non-fatal */
           }
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
             if (existingMsg) {
               await adminClient
-                .from("message")
+                .from("cct_message")
                 .update({ parts: finishedMsg.parts })
                 .eq("id", finishedMsg.id);
             } else {
@@ -308,7 +308,7 @@ export async function DELETE(request: Request) {
 
   const adminClient = createAdminClient();
   const { data: chat } = await adminClient
-    .from("chat")
+    .from("cct_chat")
     .select("*")
     .eq("id", id)
     .single();
@@ -317,7 +317,7 @@ export async function DELETE(request: Request) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  await adminClient.from("chat").delete().eq("id", id);
+  await adminClient.from("cct_chat").delete().eq("id", id);
 
   return Response.json({ id }, { status: 200 });
 }

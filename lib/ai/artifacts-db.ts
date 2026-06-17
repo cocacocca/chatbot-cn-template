@@ -2,11 +2,11 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Document } from "@/lib/types";
 
-// 查询单个文档的最新版本（通过 document_latest view）
+// 查询单个文档的最新版本（通过 cct_document_latest view）
 export async function getDocumentById(id: string): Promise<Document | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("document_latest")
+    .from("cct_document_latest")
     .select("*")
     .eq("id", id)
     .single();
@@ -44,7 +44,7 @@ export async function saveDocument({
   title: string;
 }) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("document").insert({
+  const { error } = await supabase.from("cct_document").insert({
     id,
     user_id: userId,
     content,
@@ -63,7 +63,7 @@ export async function updateDocumentContent(
   const supabase = createAdminClient();
   // 复合主键表：插入新版本实现更新
   const { data: latest, error: fetchError } = await supabase
-    .from("document_latest")
+    .from("cct_document_latest")
     .select("id, kind, title, user_id")
     .eq("id", documentId)
     .single();
@@ -75,7 +75,7 @@ export async function updateDocumentContent(
     throw new Error("Document not found");
   }
 
-  const { error } = await supabase.from("document").insert({
+  const { error } = await supabase.from("cct_document").insert({
     id: documentId,
     user_id: latest.user_id,
     content,
@@ -106,7 +106,7 @@ export async function saveSuggestions({
     original_text: s.originalText,
     suggested_text: s.suggestedText,
   }));
-  const { error } = await supabase.from("suggestion").insert(rows);
+  const { error } = await supabase.from("cct_suggestion").insert(rows);
   if (error) {
     throw error;
   }

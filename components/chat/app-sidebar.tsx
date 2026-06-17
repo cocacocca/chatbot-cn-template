@@ -62,7 +62,7 @@ export function AppSidebar() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("chat").delete().neq("id", "");
+      const { error } = await supabase.from("cct_chat").delete().neq("id", "");
       if (error) {
         throw error;
       }

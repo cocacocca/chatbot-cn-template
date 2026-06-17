@@ -9,7 +9,7 @@ export function useVotes(chatId: string) {
 
   return useSWR<Vote[]>(chatId ? ["votes", chatId] : null, async () => {
     const { data, error } = await supabase
-      .from("vote")
+      .from("cct_vote")
       .select("chat_id, message_id, is_upvoted")
       .eq("chat_id", chatId);
 
@@ -34,7 +34,7 @@ export async function voteMessageClient(
 ) {
   const supabase = createClient();
   const { error } = await supabase
-    .from("vote")
+    .from("cct_vote")
     .upsert(
       { chat_id: chatId, message_id: messageId, is_upvoted: isUpvoted },
       { onConflict: "chat_id,message_id" }

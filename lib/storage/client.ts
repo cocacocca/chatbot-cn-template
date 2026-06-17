@@ -30,7 +30,7 @@ export async function uploadChatAttachment(
   const filePath = `${user.id}/${chatId}/${fileName}`;
 
   const { error: uploadError } = await supabase.storage
-    .from("chat-attachments")
+    .from("cct-chat-attachments")
     .upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
@@ -42,7 +42,7 @@ export async function uploadChatAttachment(
   }
 
   const { data: urlData } = await supabase.storage
-    .from("chat-attachments")
+    .from("cct-chat-attachments")
     .createSignedUrl(filePath, 3600);
 
   return {
@@ -56,7 +56,7 @@ export async function getAttachmentUrls(
 ): Promise<Record<string, string>> {
   const supabase = createClient();
   const { data } = await supabase.storage
-    .from("chat-attachments")
+    .from("cct-chat-attachments")
     .createSignedUrls(paths, 3600);
 
   const result: Record<string, string> = {};
