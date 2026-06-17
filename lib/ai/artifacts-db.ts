@@ -1,0 +1,74 @@
+import "server-only";
+import { createAdminClient } from '@/lib/supabase/admin';
+
+export async function saveDocument({
+  id,
+  userId,
+  content,
+  kind,
+  title,
+}: {
+  id: string;
+  userId: string;
+  content: string;
+  kind: 'text' | 'code' | 'image' | 'sheet';
+  title: string;
+}) {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from('document').insert({
+    id,
+    user_id: userId,
+    content,
+    kind,
+    title,
+  });
+  if (error) throw error;
+}
+
+export async function updateDocumentContent(
+  documentId: string,
+  content: string
+) {
+  const supabase = createAdminClient();
+  // 复合主键表：插入新版本实现更新
+  const { data: latest, error: fetchError } = await supabase
+    .from('document_latest')
+    .select('id, kind, title, user_id')
+    .eq('id', documentId)
+    .single();
+
+  if (fetchError) throw fetchError;
+  if (!latest) throw new Error('Document not found');
+
+  const { error } = await supabase.from('document').insert({
+    id: documentId,
+    user_id: latest.user_id,
+    content,
+    kind: latest.kind,
+    title: latest.title,
+  });
+  if (error) throw error;
+}
+
+export async function saveSuggestions({
+  documentId,
+  documentCreatedAt,
+  userId,
+  suggestions,
+}: {
+  documentId: string;
+  documentCreatedAt: string;
+  userId: string;
+  suggestions: Array<{ originalText: string; suggestedText: string }>;
+}) {
+  const supabase = createAdminClient();
+  const rows = suggestions.map((s) => ({
+    document_id: documentId,
+    document_created_at: documentCreatedAt,
+    user_id: userId,
+    original_text: s.originalText,
+    suggested_text: s.suggestedText,
+  }));
+  const { error } = await supabase.from('suggestion').insert(rows);
+  if (error) throw error;
+}
