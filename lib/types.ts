@@ -56,7 +56,6 @@ export type Vote = {
 export type Chat = {
   id: string;
   title: string | null;
-  visibility: "public" | "private";
   createdAt: string;
 };
 

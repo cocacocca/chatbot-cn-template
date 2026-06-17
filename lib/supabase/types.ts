@@ -29,18 +29,15 @@ export type Database = {
           id: string;
           user_id: string;
           title: string | null;
-          visibility: "public" | "private";
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
           title?: string | null;
-          visibility?: "public" | "private";
         };
         Update: {
           title?: string | null;
-          visibility?: "public" | "private";
         };
         Relationships: [];
       };

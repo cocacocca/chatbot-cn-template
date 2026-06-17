@@ -43,8 +43,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, messages, selectedChatModel, selectedVisibilityType } =
-      requestBody;
+    const { id, message, messages, selectedChatModel } = requestBody;
 
     const supabase = await createClient();
     const {
@@ -103,7 +102,6 @@ export async function POST(request: Request) {
         id,
         userId: user.id,
         title: "New chat",
-        visibility: selectedVisibilityType,
       });
       titlePromise = generateTitleFromUserMessage({ message });
     }

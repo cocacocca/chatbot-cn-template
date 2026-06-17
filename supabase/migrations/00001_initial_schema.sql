@@ -33,8 +33,6 @@ create table public.cct_chat (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   title text,
-  visibility varchar(20) not null default 'private'
-    check (visibility in ('public', 'private')),
   created_at timestamptz not null default now()
 );
 

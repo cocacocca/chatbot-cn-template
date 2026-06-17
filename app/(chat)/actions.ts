@@ -2,7 +2,6 @@
 
 import { generateText, type UIMessage } from "ai";
 import { cookies } from "next/headers";
-import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { deleteMessagesByChatIdAfterTimestamp } from "@/lib/ai/chat-db";
 import { titlePrompt } from "@/lib/ai/prompts";
 import { getTitleModel } from "@/lib/ai/providers";
@@ -65,39 +64,4 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
     message.chat_id,
     new Date(message.created_at)
   );
-}
-
-export async function updateChatVisibility({
-  chatId,
-  visibility,
-}: {
-  chatId: string;
-  visibility: VisibilityType;
-}) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const adminClient = createAdminClient();
-  const { data: chat } = await adminClient
-    .from("cct_chat")
-    .select("*")
-    .eq("id", chatId)
-    .single();
-
-  if (!chat || chat.user_id !== user.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const { error } = await adminClient
-    .from("cct_chat")
-    .update({ visibility })
-    .eq("id", chatId);
-  if (error) {
-    throw error;
-  }
 }

@@ -5,12 +5,10 @@ export async function saveChat({
   id,
   userId,
   title,
-  visibility,
 }: {
   id: string;
   userId: string;
   title?: string;
-  visibility: "public" | "private";
 }) {
   const supabase = createAdminClient();
   const { error } = await supabase.from("cct_chat").upsert(
@@ -18,7 +16,6 @@ export async function saveChat({
       id,
       user_id: userId,
       title,
-      visibility,
     },
     { onConflict: "id" }
   );

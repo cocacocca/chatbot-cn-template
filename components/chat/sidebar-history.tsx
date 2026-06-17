@@ -77,7 +77,7 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
   );
 };
 
-// 使用稳定的字符串 key 以兼容 use-chat-visibility 中的 cache.get 调用
+// 使用稳定的字符串 key 以兼容 SWR infinite 的 cache.get 调用
 const HISTORY_KEY = "chat-history-infinite";
 
 export function getChatHistoryPaginationKey(
@@ -108,7 +108,7 @@ async function fetchChatHistoryPage(key: string): Promise<ChatHistory> {
 
   let query = supabase
     .from("cct_chat")
-    .select("id, title, visibility, created_at")
+    .select("id, title, created_at")
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE + 1);
 
@@ -134,7 +134,6 @@ async function fetchChatHistoryPage(key: string): Promise<ChatHistory> {
   const chats = (data ?? []).slice(0, PAGE_SIZE).map((row) => ({
     id: row.id,
     title: row.title,
-    visibility: row.visibility,
     createdAt: row.created_at,
   }));
 

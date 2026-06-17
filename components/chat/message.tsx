@@ -28,7 +28,6 @@ const PurePreviewMessage = ({
   isLoading,
   setMessages: _setMessages,
   regenerate: _regenerate,
-  isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
   onEdit,
 }: {
@@ -39,7 +38,6 @@ const PurePreviewMessage = ({
   isLoading: boolean;
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  isReadonly: boolean;
   requiresScrollPadding: boolean;
   onEdit?: (message: ChatMessage) => void;
 }) => {
@@ -231,13 +229,7 @@ const PurePreviewMessage = ({
         );
       }
 
-      return (
-        <DocumentPreview
-          isReadonly={isReadonly}
-          key={toolCallId}
-          result={part.output}
-        />
-      );
+      return <DocumentPreview key={toolCallId} result={part.output} />;
     }
 
     if (type === "tool-updateDocument") {
@@ -258,7 +250,6 @@ const PurePreviewMessage = ({
         <div className="relative" key={toolCallId}>
           <DocumentPreview
             args={{ ...part.output, isUpdate: true }}
-            isReadonly={isReadonly}
             result={part.output}
           />
         </div>
@@ -287,7 +278,6 @@ const PurePreviewMessage = ({
                     </div>
                   ) : (
                     <DocumentToolResult
-                      isReadonly={isReadonly}
                       result={part.output}
                       type="request-suggestions"
                     />
@@ -303,7 +293,7 @@ const PurePreviewMessage = ({
     return null;
   });
 
-  const actions = !isReadonly && (
+  const actions = (
     <MessageActions
       chatId={chatId}
       isLoading={isLoading}

@@ -15,7 +15,6 @@ type ArtifactMessagesProps = {
   messages: ChatMessage[];
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  isReadonly: boolean;
   artifactStatus: UIArtifact["status"];
 };
 
@@ -27,7 +26,6 @@ function PureArtifactMessages({
   messages,
   setMessages,
   regenerate,
-  isReadonly,
 }: ArtifactMessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -49,7 +47,6 @@ function PureArtifactMessages({
           addToolApprovalResponse={addToolApprovalResponse}
           chatId={chatId}
           isLoading={status === "streaming" && index === messages.length - 1}
-          isReadonly={isReadonly}
           key={message.id}
           message={message}
           regenerate={regenerate}

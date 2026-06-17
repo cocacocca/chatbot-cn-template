@@ -20,7 +20,6 @@ import { unstable_serialize } from "swr/infinite";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { toast } from "@/components/chat/toast";
-import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useVotes } from "@/hooks/use-votes";
 import { ChatbotError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
@@ -38,8 +37,6 @@ type ActiveChatContextValue = {
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
-  visibilityType: VisibilityType;
-  isReadonly: boolean;
   isLoading: boolean;
   votes: Vote[] | undefined;
   currentModelId: string;
@@ -82,26 +79,16 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     isNewChat ? null : ["chat-data", chatId],
     async () => {
       const supabase = createClient();
-      const [messagesRes, chatRes] = await Promise.all([
-        supabase
-          .from("cct_message")
-          .select("*")
-          .eq("chat_id", chatId)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("cct_chat")
-          .select("visibility")
-          .eq("id", chatId)
-          .single(),
-      ]);
-      if (messagesRes.error) {
-        throw messagesRes.error;
-      }
-      if (chatRes.error) {
-        throw chatRes.error;
+      const { data: messagesData, error: messagesError } = await supabase
+        .from("cct_message")
+        .select("*")
+        .eq("chat_id", chatId)
+        .order("created_at", { ascending: true });
+      if (messagesError) {
+        throw messagesError;
       }
       return {
-        messages: (messagesRes.data ?? []).map((m) => ({
+        messages: (messagesData ?? []).map((m) => ({
           id: m.id,
           chatId: m.chat_id,
           role: m.role,
@@ -109,7 +96,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           attachments: m.attachments,
           createdAt: m.created_at,
         })) as ChatMessage[],
-        visibility: (chatRes.data?.visibility ?? "private") as VisibilityType,
       };
     },
     { revalidateOnFocus: false }
@@ -118,9 +104,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const initialMessages: ChatMessage[] = isNewChat
     ? []
     : (chatData?.messages ?? []);
-  const visibility: VisibilityType = isNewChat
-    ? "private"
-    : (chatData?.visibility ?? "private");
 
   const {
     messages,
@@ -169,7 +152,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
               ? { messages: request.messages }
               : { message: lastMessage }),
             selectedChatModel: currentModelIdRef.current,
-            selectedVisibilityType: visibility,
             ...request.body,
           },
         };
@@ -249,12 +231,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [sendMessage, chatId]);
 
-  // RLS 下客户端只能查到自己的 chat，所以 isReadonly 始终为 false
-  const isReadonly = false;
-
-  const { data: votes } = useVotes(
-    !isReadonly && messages.length >= 2 ? chatId : ""
-  );
+  const { data: votes } = useVotes(messages.length >= 2 ? chatId : "");
 
   const value = useMemo<ActiveChatContextValue>(
     () => ({
@@ -268,8 +245,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       addToolApprovalResponse,
       input,
       setInput,
-      visibilityType: visibility,
-      isReadonly,
       isLoading: !isNewChat && isLoading,
       votes,
       currentModelId,
@@ -285,7 +260,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       regenerate,
       addToolApprovalResponse,
       input,
-      visibility,
       isNewChat,
       isLoading,
       votes,

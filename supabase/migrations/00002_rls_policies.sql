@@ -20,9 +20,10 @@ create policy "users_delete_own_profile"
   using (auth.uid() = id);
 
 -- ---------- cct_chat ----------
-create policy "users_select_own_or_public_chat"
+drop policy if exists "users_select_own_or_public_chat" on public.cct_chat;
+create policy "users_select_own_chat"
   on public.cct_chat for select
-  using (auth.uid() = user_id or visibility = 'public');
+  using (auth.uid() = user_id);
 
 create policy "users_insert_own_chat"
   on public.cct_chat for insert
@@ -37,13 +38,14 @@ create policy "users_delete_own_chat"
   using (auth.uid() = user_id);
 
 -- ---------- cct_message ----------
-create policy "users_select_messages_in_own_or_public_chat"
+drop policy if exists "users_select_messages_in_own_or_public_chat" on public.cct_message;
+create policy "users_select_messages_in_own_chat"
   on public.cct_message for select
   using (
     exists (
       select 1 from public.cct_chat c
       where c.id = cct_message.chat_id
-        and (c.user_id = auth.uid() or c.visibility = 'public')
+        and c.user_id = auth.uid()
     )
   );
 
@@ -75,13 +77,14 @@ create policy "users_delete_messages_in_own_chat"
   );
 
 -- ---------- cct_vote ----------
-create policy "users_select_votes_in_own_or_public_chat"
+drop policy if exists "users_select_votes_in_own_or_public_chat" on public.cct_vote;
+create policy "users_select_votes_in_own_chat"
   on public.cct_vote for select
   using (
     exists (
       select 1 from public.cct_chat c
       where c.id = cct_vote.chat_id
-        and (c.user_id = auth.uid() or c.visibility = 'public')
+        and c.user_id = auth.uid()
     )
   );
 

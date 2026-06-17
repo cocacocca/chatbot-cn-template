@@ -8,7 +8,6 @@ export type { DBMessage, Document, Suggestion } from "@/lib/types";
 export type Chat = {
   id: string;
   title: string | null;
-  visibility: "public" | "private";
   createdAt: string;
 };
 

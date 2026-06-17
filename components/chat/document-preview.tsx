@@ -35,16 +35,11 @@ type DocumentToolOutput = {
 };
 
 type DocumentPreviewProps = {
-  isReadonly: boolean;
   result?: Partial<DocumentToolOutput>;
   args?: Partial<DocumentToolOutput> & { isUpdate?: boolean };
 };
 
-export function DocumentPreview({
-  isReadonly: _isReadonly,
-  result,
-  args,
-}: DocumentPreviewProps) {
+export function DocumentPreview({ result, args }: DocumentPreviewProps) {
   const { artifact, setArtifact } = useArtifact();
 
   const { data: documents, isLoading: isDocumentsFetching } = useDocuments(
