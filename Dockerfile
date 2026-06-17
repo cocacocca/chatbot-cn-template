@@ -42,9 +42,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy uploads directory
-RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
-
 USER nextjs
 
 EXPOSE 3000

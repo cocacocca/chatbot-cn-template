@@ -10,11 +10,7 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     env:
-      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-      BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
-      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
-      REDIS_URL: ${{ secrets.REDIS_URL }}
+      AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -59,8 +55,23 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Start local Supabase
+        run: |
+          npx supabase start
+          npx supabase db push
+
+      - name: Set test environment variables
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321" >> .env.test
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WeoqcQI40P-FN5q5j9jvON6xgj4X5O9W9c0o" >> .env.test
+          echo "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3WbYpZr3zA" >> .env.test
+
       - name: Run Playwright tests
-        run: pnpm test
+        run: pnpm test:e2e
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop
 
       - uses: actions/upload-artifact@v4
         if: always() && !cancelled()

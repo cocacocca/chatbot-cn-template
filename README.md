@@ -29,8 +29,8 @@
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
 - Data Persistence
-  - [Neon Serverless Postgres](https://vercel.com/marketplace/neon) for saving chat history and user data
-  - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
+  - [Supabase](https://supabase.com) Postgres database for saving chat history and user data
+  - [Supabase Storage](https://supabase.com/docs/guides/storage) for efficient file storage
 - [Auth.js](https://authjs.dev)
   - Simple and secure authentication
 
@@ -52,20 +52,49 @@ You can deploy your own version of Chatbot to Vercel with one click:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/templates/next.js/chatbot)
 
+### Prerequisites
+
+1. Create a [Supabase](https://supabase.com) project and obtain the following from your project settings:
+   - `NEXT_PUBLIC_SUPABASE_URL` - Project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Anon (public) key
+   - `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-side only)
+2. Obtain an `AI_GATEWAY_API_KEY` from the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) (required for non-Vercel deployments).
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (public) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
+| `AI_GATEWAY_API_KEY` | AI Gateway API key |
+
 ## Running locally
 
 You will need to use the environment variables [defined in `.env.example`](.env.example) to run Chatbot. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env` file is all that is necessary.
 
 > Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI and authentication provider accounts.
 
-1. Install Vercel CLI: `npm i -g vercel`
-2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`
-3. Download your environment variables: `vercel env pull`
+1. Create a [Supabase](https://supabase.com) project and obtain your project URL, anon key, and service role key from the project settings.
+2. Obtain an `AI_GATEWAY_API_KEY` from the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) (required for non-Vercel deployments).
+3. Copy `.env.example` to `.env` and fill in the values:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `AI_GATEWAY_API_KEY`
+4. Apply the database schema to your Supabase project:
+   ```bash
+   pnpm db:push
+   ```
+5. Generate TypeScript types from your Supabase schema (optional, requires `SUPABASE_PROJECT_REF`):
+   ```bash
+   pnpm db:generate
+   ```
 
 ```bash
 pnpm install
-pnpm db:migrate # Setup database or apply latest database changes
+pnpm db:push # Apply database schema to Supabase
 pnpm dev
 ```
 
-Your app template should now be running on [localhost:3000](http://localhost:3000).
+Your app template should now be running on [localhost:30000](http://localhost:30000).
