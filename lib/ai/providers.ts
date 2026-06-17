@@ -5,7 +5,7 @@ import {
   getAllModelConfigs,
   getModelConfigById,
   getTitleModelConfig,
-} from "@/lib/db/queries";
+} from "@/lib/ai/models-db";
 
 function createClientForModel(
   baseUrl: string | null | undefined,
@@ -24,7 +24,7 @@ function createClientForModel(
 }
 
 export async function getLanguageModel(modelId: string) {
-  const config = await getModelConfigById({ id: modelId });
+  const config = await getModelConfigById(modelId);
 
   if (!config) {
     throw new Error(

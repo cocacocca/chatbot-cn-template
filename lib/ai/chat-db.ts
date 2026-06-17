@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function saveChat({
   id,
@@ -10,31 +10,43 @@ export async function saveChat({
   id: string;
   userId: string;
   title?: string;
-  visibility: 'public' | 'private';
+  visibility: "public" | "private";
 }) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from('chat').upsert(
+  const { error } = await supabase.from("chat").upsert(
     {
       id,
       user_id: userId,
       title,
       visibility,
     },
-    { onConflict: 'id' }
+    { onConflict: "id" }
   );
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 }
 
-export async function saveMessages(messages: Array<{
-  id: string;
-  chat_id: string;
-  role: string;
-  parts: any;
-  attachments: any;
-}>) {
+export async function saveMessages(
+  messages: Array<{
+    id: string;
+    chatId: string;
+    role: string;
+    parts: any;
+    attachments: any;
+    createdAt?: Date;
+  }>
+) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from('message').insert(messages);
-  if (error) throw error;
+  const rows = messages.map(({ chatId, createdAt, ...rest }) => ({
+    ...rest,
+    chat_id: chatId,
+    ...(createdAt && { created_at: createdAt.toISOString() }),
+  }));
+  const { error } = await supabase.from("message").insert(rows);
+  if (error) {
+    throw error;
+  }
 }
 
 export async function deleteMessagesByChatIdAfterTimestamp(
@@ -43,9 +55,11 @@ export async function deleteMessagesByChatIdAfterTimestamp(
 ) {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from('message')
+    .from("message")
     .delete()
-    .eq('chat_id', chatId)
-    .gte('created_at', timestamp.toISOString());
-  if (error) throw error;
+    .eq("chat_id", chatId)
+    .gte("created_at", timestamp.toISOString());
+  if (error) {
+    throw error;
+  }
 }

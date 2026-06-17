@@ -1,5 +1,34 @@
 import "server-only";
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Document } from "@/lib/types";
+
+// 查询单个文档的最新版本（通过 document_latest view）
+export async function getDocumentById(id: string): Promise<Document | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("document_latest")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null; // Not found
+    }
+    throw error;
+  }
+  if (!data) {
+    return null;
+  }
+  return {
+    id: data.id,
+    createdAt: data.created_at,
+    userId: data.user_id,
+    content: data.content ?? "",
+    kind: data.kind,
+    title: data.title ?? "",
+  };
+}
 
 export async function saveDocument({
   id,
@@ -11,18 +40,20 @@ export async function saveDocument({
   id: string;
   userId: string;
   content: string;
-  kind: 'text' | 'code' | 'image' | 'sheet';
+  kind: "text" | "code" | "image" | "sheet";
   title: string;
 }) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from('document').insert({
+  const { error } = await supabase.from("document").insert({
     id,
     user_id: userId,
     content,
     kind,
     title,
   });
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 }
 
 export async function updateDocumentContent(
@@ -32,22 +63,28 @@ export async function updateDocumentContent(
   const supabase = createAdminClient();
   // 复合主键表：插入新版本实现更新
   const { data: latest, error: fetchError } = await supabase
-    .from('document_latest')
-    .select('id, kind, title, user_id')
-    .eq('id', documentId)
+    .from("document_latest")
+    .select("id, kind, title, user_id")
+    .eq("id", documentId)
     .single();
 
-  if (fetchError) throw fetchError;
-  if (!latest) throw new Error('Document not found');
+  if (fetchError) {
+    throw fetchError;
+  }
+  if (!latest) {
+    throw new Error("Document not found");
+  }
 
-  const { error } = await supabase.from('document').insert({
+  const { error } = await supabase.from("document").insert({
     id: documentId,
     user_id: latest.user_id,
     content,
     kind: latest.kind,
     title: latest.title,
   });
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 }
 
 export async function saveSuggestions({
@@ -69,6 +106,8 @@ export async function saveSuggestions({
     original_text: s.originalText,
     suggested_text: s.suggestedText,
   }));
-  const { error } = await supabase.from('suggestion').insert(rows);
-  if (error) throw error;
+  const { error } = await supabase.from("suggestion").insert(rows);
+  if (error) {
+    throw error;
+  }
 }

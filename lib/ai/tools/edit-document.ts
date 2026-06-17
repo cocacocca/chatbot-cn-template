@@ -1,8 +1,7 @@
 import { tool, type UIMessageStreamWriter } from "ai";
-import type { Session } from "next-auth";
 import { z } from "zod";
-import { getDocumentById, saveDocument } from "@/lib/db/queries";
-import type { ChatMessage } from "@/lib/types";
+import { getDocumentById, saveDocument } from "@/lib/ai/artifacts-db";
+import type { ChatMessage, Session } from "@/lib/types";
 
 type EditDocumentProps = {
   session: Session;
@@ -29,7 +28,7 @@ export const editDocument = ({ session, dataStream }: EditDocumentProps) =>
         ),
     }),
     execute: async ({ id, old_string, new_string, replace_all }) => {
-      const document = await getDocumentById({ id });
+      const document = await getDocumentById(id);
 
       if (!document) {
         return { error: "Document not found" };

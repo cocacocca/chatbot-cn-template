@@ -2,13 +2,10 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  generateId,
   stepCountIs,
   streamText,
 } from "ai";
-import { after } from "next/server";
-import { createResumableStreamContext } from "resumable-stream";
-import { auth } from "@/app/(auth)/auth";
+import { saveChat, saveMessages } from "@/lib/ai/chat-db";
 import { entitlements } from "@/lib/ai/entitlements";
 import {
   getChatModels,
@@ -24,35 +21,16 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { isProductionEnvironment } from "@/lib/constants";
-import {
-  createStreamId,
-  deleteChatById,
-  getChatById,
-  getMessageCountByUserId,
-  getMessagesByChatId,
-  saveChat,
-  saveMessages,
-  updateChatTitleById,
-  updateMessage,
-} from "@/lib/db/queries";
-import type { DBMessage } from "@/lib/db/schema";
+import { getMessageCountByUserId } from "@/lib/db/server-queries";
 import { ChatbotError } from "@/lib/errors";
-import type { ChatMessage } from "@/lib/types";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import type { ChatMessage, DBMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
 export const maxDuration = 60;
-
-function getStreamContext() {
-  try {
-    return createResumableStreamContext({ waitUntil: after });
-  } catch (_) {
-    return null;
-  }
-}
-
-export { getStreamContext };
 
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
@@ -68,20 +46,22 @@ export async function POST(request: Request) {
     const { id, message, messages, selectedChatModel, selectedVisibilityType } =
       requestBody;
 
-    const session = await auth();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       return new ChatbotError("unauthorized:chat").toResponse();
     }
+
+    const session = { user: { id: user.id } };
 
     const allowed = await isAllowedModelId(selectedChatModel);
     const defaultId = await getDefaultModelId();
     const chatModel = allowed ? selectedChatModel : defaultId;
 
-    const messageCount = await getMessageCountByUserId({
-      id: session.user.id,
-      differenceInHours: 1,
-    });
+    const messageCount = await getMessageCountByUserId();
 
     if (messageCount > entitlements.maxMessagesPerHour) {
       return new ChatbotError("rate_limit:chat").toResponse();
@@ -89,19 +69,39 @@ export async function POST(request: Request) {
 
     const isToolApprovalFlow = Boolean(messages);
 
-    const chat = await getChatById({ id });
+    const adminClient = createAdminClient();
+
+    // 查询 chat 是否存在
+    const { data: chat } = await adminClient
+      .from("chat")
+      .select("*")
+      .eq("id", id)
+      .single();
+
     let messagesFromDb: DBMessage[] = [];
     let titlePromise: Promise<string> | null = null;
 
     if (chat) {
-      if (chat.userId !== session.user.id) {
+      if (chat.user_id !== user.id) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
-      messagesFromDb = await getMessagesByChatId({ id });
+      const { data: dbMessages } = await adminClient
+        .from("message")
+        .select("*")
+        .eq("chat_id", id)
+        .order("created_at", { ascending: true });
+      messagesFromDb = (dbMessages ?? []).map((m: Record<string, unknown>) => ({
+        id: m.id as string,
+        chatId: m.chat_id as string,
+        role: m.role as string,
+        parts: m.parts,
+        attachments: m.attachments,
+        createdAt: new Date(m.created_at as string),
+      }));
     } else if (message?.role === "user") {
       await saveChat({
         id,
-        userId: session.user.id,
+        userId: user.id,
         title: "New chat",
         visibility: selectedVisibilityType,
       });
@@ -154,18 +154,16 @@ export async function POST(request: Request) {
     };
 
     if (message?.role === "user") {
-      await saveMessages({
-        messages: [
-          {
-            chatId: id,
-            id: message.id,
-            role: "user",
-            parts: message.parts,
-            attachments: [],
-            createdAt: new Date(),
-          },
-        ],
-      });
+      await saveMessages([
+        {
+          chatId: id,
+          id: message.id,
+          role: "user",
+          parts: message.parts,
+          attachments: [],
+          createdAt: new Date(),
+        },
+      ]);
     }
 
     const allModels = await getChatModels();
@@ -233,7 +231,7 @@ export async function POST(request: Request) {
           try {
             const title = await titlePromise;
             dataStream.write({ type: "data-chat-title", data: title });
-            updateChatTitleById({ chatId: id, title });
+            await adminClient.from("chat").update({ title }).eq("id", id);
           } catch (_) {
             /* non-fatal */
           }
@@ -245,36 +243,34 @@ export async function POST(request: Request) {
           for (const finishedMsg of finishedMessages) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
             if (existingMsg) {
-              await updateMessage({
-                id: finishedMsg.id,
-                parts: finishedMsg.parts,
-              });
+              await adminClient
+                .from("message")
+                .update({ parts: finishedMsg.parts })
+                .eq("id", finishedMsg.id);
             } else {
-              await saveMessages({
-                messages: [
-                  {
-                    id: finishedMsg.id,
-                    role: finishedMsg.role,
-                    parts: finishedMsg.parts,
-                    createdAt: new Date(),
-                    attachments: [],
-                    chatId: id,
-                  },
-                ],
-              });
+              await saveMessages([
+                {
+                  id: finishedMsg.id,
+                  role: finishedMsg.role,
+                  parts: finishedMsg.parts,
+                  createdAt: new Date(),
+                  attachments: [],
+                  chatId: id,
+                },
+              ]);
             }
           }
         } else if (finishedMessages.length > 0) {
-          await saveMessages({
-            messages: finishedMessages.map((currentMessage) => ({
+          await saveMessages(
+            finishedMessages.map((currentMessage) => ({
               id: currentMessage.id,
               role: currentMessage.role,
               parts: currentMessage.parts,
               createdAt: new Date(),
               attachments: [],
               chatId: id,
-            })),
-          });
+            }))
+          );
         }
       },
       onError: () => {
@@ -282,27 +278,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return createUIMessageStreamResponse({
-      stream,
-      async consumeSseStream({ stream: sseStream }) {
-        if (!process.env.REDIS_URL) {
-          return;
-        }
-        try {
-          const streamContext = getStreamContext();
-          if (streamContext) {
-            const streamId = generateId();
-            await createStreamId({ streamId, chatId: id });
-            await streamContext.createNewResumableStream(
-              streamId,
-              () => sseStream
-            );
-          }
-        } catch (_) {
-          /* non-critical */
-        }
-      },
-    });
+    return createUIMessageStreamResponse({ stream });
   } catch (error) {
     if (error instanceof ChatbotError) {
       return error.toResponse();
@@ -321,19 +297,27 @@ export async function DELETE(request: Request) {
     return new ChatbotError("bad_request:api").toResponse();
   }
 
-  const session = await auth();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) {
+  if (!user) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
-  const chat = await getChatById({ id });
+  const adminClient = createAdminClient();
+  const { data: chat } = await adminClient
+    .from("chat")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (chat?.userId !== session.user.id) {
+  if (chat?.user_id !== user.id) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  const deletedChat = await deleteChatById({ id });
+  await adminClient.from("chat").delete().eq("id", id);
 
-  return Response.json(deletedChat, { status: 200 });
+  return Response.json({ id }, { status: 200 });
 }

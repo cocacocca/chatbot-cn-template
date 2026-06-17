@@ -1,19 +1,22 @@
-import { auth } from "@/app/(auth)/auth";
 import { getModelCapabilitiesMap } from "@/lib/ai/models";
 import {
   createModelConfig,
   deleteModelConfig,
-  getAllModelConfigs,
+  getAllModelConfigsForClient,
   updateModelConfig,
-} from "@/lib/db/queries";
+} from "@/lib/ai/models-db";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const configs = await getAllModelConfigs();
+  const configs = await getAllModelConfigsForClient();
   const capabilities = await getModelCapabilitiesMap();
 
   return Response.json({
@@ -23,8 +26,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -75,8 +81,11 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -88,7 +97,7 @@ export async function PUT(request: Request) {
       return Response.json({ error: "id is required" }, { status: 400 });
     }
 
-    const result = await updateModelConfig({ id, ...data });
+    const result = await updateModelConfig(id, data);
 
     return Response.json(result);
   } catch (_error) {
@@ -100,8 +109,11 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -113,8 +125,8 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const result = await deleteModelConfig({ id });
-    return Response.json(result);
+    await deleteModelConfig(id);
+    return Response.json({ success: true });
   } catch (_error) {
     return Response.json(
       { error: "Failed to delete model config" },

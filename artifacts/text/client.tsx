@@ -11,7 +11,7 @@ import {
   UndoIcon,
 } from "@/components/chat/icons";
 import { Editor } from "@/components/chat/text-editor";
-import type { Suggestion } from "@/lib/db/schema";
+import type { Suggestion } from "@/lib/types";
 import { getSuggestions } from "../actions";
 
 type TextArtifactMetadata = {

@@ -4,7 +4,7 @@ import {
   getAllModelConfigs,
   getDefaultModelConfig,
   getTitleModelConfig,
-} from "@/lib/db/queries";
+} from "@/lib/ai/models-db";
 
 export type ModelCapabilities = {
   tools: boolean;

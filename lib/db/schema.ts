@@ -1,155 +1,20 @@
-import type { InferSelectModel } from "drizzle-orm";
-import {
-  boolean,
-  foreignKey,
-  json,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+// 兼容性类型导出：旧代码从 @/lib/db/schema 导入类型，
+// 实际类型定义已迁移至 @/lib/types.ts（camelCase）。
+// 此文件作为 re-export 桥接，避免大量 import 路径修改。
 
-export const user = pgTable("User", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  email: varchar("email", { length: 64 }).notNull(),
-  password: varchar("password", { length: 64 }),
-  name: text("name"),
-  emailVerified: boolean("emailVerified").notNull().default(false),
-  image: text("image"),
-  isAnonymous: boolean("isAnonymous").notNull().default(false),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+export type { DBMessage, Document, Suggestion } from "@/lib/types";
 
-export type User = InferSelectModel<typeof user>;
+// Chat 类型（对应 public.chat 表，字段名 camelCase）
+export type Chat = {
+  id: string;
+  title: string | null;
+  visibility: "public" | "private";
+  createdAt: string;
+};
 
-export const chat = pgTable("Chat", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  createdAt: timestamp("createdAt").notNull(),
-  title: text("title").notNull(),
-  userId: uuid("userId")
-    .notNull()
-    .references(() => user.id),
-  visibility: varchar("visibility", { enum: ["public", "private"] })
-    .notNull()
-    .default("private"),
-});
-
-export type Chat = InferSelectModel<typeof chat>;
-
-export const message = pgTable("Message_v2", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  chatId: uuid("chatId")
-    .notNull()
-    .references(() => chat.id),
-  role: varchar("role").notNull(),
-  parts: json("parts").notNull(),
-  attachments: json("attachments").notNull(),
-  createdAt: timestamp("createdAt").notNull(),
-});
-
-export type DBMessage = InferSelectModel<typeof message>;
-
-export const vote = pgTable(
-  "Vote_v2",
-  {
-    chatId: uuid("chatId")
-      .notNull()
-      .references(() => chat.id),
-    messageId: uuid("messageId")
-      .notNull()
-      .references(() => message.id),
-    isUpvoted: boolean("isUpvoted").notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-  })
-);
-
-export type Vote = InferSelectModel<typeof vote>;
-
-export const document = pgTable(
-  "Document",
-  {
-    id: uuid("id").notNull().defaultRandom(),
-    createdAt: timestamp("createdAt").notNull(),
-    title: text("title").notNull(),
-    content: text("content"),
-    kind: varchar("text", { enum: ["text", "code", "image", "sheet"] })
-      .notNull()
-      .default("text"),
-    userId: uuid("userId")
-      .notNull()
-      .references(() => user.id),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id, table.createdAt] }),
-  })
-);
-
-export type Document = InferSelectModel<typeof document>;
-
-export const suggestion = pgTable(
-  "Suggestion",
-  {
-    id: uuid("id").notNull().defaultRandom(),
-    documentId: uuid("documentId").notNull(),
-    documentCreatedAt: timestamp("documentCreatedAt").notNull(),
-    originalText: text("originalText").notNull(),
-    suggestedText: text("suggestedText").notNull(),
-    description: text("description"),
-    isResolved: boolean("isResolved").notNull().default(false),
-    userId: uuid("userId")
-      .notNull()
-      .references(() => user.id),
-    createdAt: timestamp("createdAt").notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    documentRef: foreignKey({
-      columns: [table.documentId, table.documentCreatedAt],
-      foreignColumns: [document.id, document.createdAt],
-    }),
-  })
-);
-
-export type Suggestion = InferSelectModel<typeof suggestion>;
-
-export const stream = pgTable(
-  "Stream",
-  {
-    id: uuid("id").notNull().defaultRandom(),
-    chatId: uuid("chatId").notNull(),
-    createdAt: timestamp("createdAt").notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    chatRef: foreignKey({
-      columns: [table.chatId],
-      foreignColumns: [chat.id],
-    }),
-  })
-);
-
-export type Stream = InferSelectModel<typeof stream>;
-
-export const modelConfig = pgTable("ModelConfig", {
-  id: text("id").primaryKey().notNull(),
-  name: text("name").notNull(),
-  provider: text("provider").notNull().default("openai"),
-  baseUrl: text("baseUrl"),
-  apiKey: text("apiKey"),
-  capabilities: json("capabilities")
-    .notNull()
-    .$type<{ tools: boolean; vision: boolean; reasoning: boolean }>()
-    .default({ tools: true, vision: false, reasoning: false }),
-  reasoningEffort: text("reasoningEffort"),
-  isDefault: boolean("isDefault").notNull().default(false),
-  isTitleModel: boolean("isTitleModel").notNull().default(false),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
-
-export type ModelConfig = InferSelectModel<typeof modelConfig>;
+// Vote 类型（对应 public.vote 表，字段名 camelCase）
+export type Vote = {
+  chatId: string;
+  messageId: string;
+  isUpvoted: boolean;
+};

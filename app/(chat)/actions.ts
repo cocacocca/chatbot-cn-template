@@ -2,16 +2,12 @@
 
 import { generateText, type UIMessage } from "ai";
 import { cookies } from "next/headers";
-import { auth } from "@/app/(auth)/auth";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
+import { deleteMessagesByChatIdAfterTimestamp } from "@/lib/ai/chat-db";
 import { titlePrompt } from "@/lib/ai/prompts";
 import { getTitleModel } from "@/lib/ai/providers";
-import {
-  deleteMessagesByChatIdAfterTimestamp,
-  getChatById,
-  getMessageById,
-  updateChatVisibilityById,
-} from "@/lib/db/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getTextFromMessage } from "@/lib/utils";
 
 export async function saveChatModelAsCookie(model: string) {
@@ -36,25 +32,39 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
     throw new Error("Unauthorized");
   }
 
-  const [message] = await getMessageById({ id });
-  if (!message) {
+  const adminClient = createAdminClient();
+  const { data: message, error: msgError } = await adminClient
+    .from("message")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (msgError || !message) {
     throw new Error("Message not found");
   }
 
-  const chat = await getChatById({ id: message.chatId });
-  if (!chat || chat.userId !== session.user.id) {
+  const { data: chat } = await adminClient
+    .from("chat")
+    .select("*")
+    .eq("id", message.chat_id)
+    .single();
+
+  if (!chat || chat.user_id !== user.id) {
     throw new Error("Unauthorized");
   }
 
-  await deleteMessagesByChatIdAfterTimestamp({
-    chatId: message.chatId,
-    timestamp: message.createdAt,
-  });
+  await deleteMessagesByChatIdAfterTimestamp(
+    message.chat_id,
+    new Date(message.created_at)
+  );
 }
 
 export async function updateChatVisibility({
@@ -64,15 +74,30 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
     throw new Error("Unauthorized");
   }
 
-  const chat = await getChatById({ id: chatId });
-  if (!chat || chat.userId !== session.user.id) {
+  const adminClient = createAdminClient();
+  const { data: chat } = await adminClient
+    .from("chat")
+    .select("*")
+    .eq("id", chatId)
+    .single();
+
+  if (!chat || chat.user_id !== user.id) {
     throw new Error("Unauthorized");
   }
 
-  await updateChatVisibilityById({ chatId, visibility });
+  const { error } = await adminClient
+    .from("chat")
+    .update({ visibility })
+    .eq("id", chatId);
+  if (error) {
+    throw error;
+  }
 }

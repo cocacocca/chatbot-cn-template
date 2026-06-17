@@ -1,8 +1,11 @@
-import { auth } from "@/app/(auth)/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -16,13 +19,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const url = baseUrl.endsWith("/") ? `${baseUrl}models` : `${baseUrl}/models`;
+    const url = baseUrl.endsWith("/")
+      ? `${baseUrl}models`
+      : `${baseUrl}/models`;
 
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (res.ok) {
