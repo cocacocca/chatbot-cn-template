@@ -42,7 +42,7 @@ export type ChatHistory = {
   hasMore: boolean;
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 const groupChatsByDate = (chats: Chat[]): GroupedChats => {
   const now = new Date();
