@@ -2,24 +2,70 @@
 
 import { motion } from "framer-motion";
 import Form from "next/form";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { SubmitButton } from "./submit-button";
+import { toast } from "./toast";
 
 const fieldSpring = { type: "spring" as const, damping: 25, stiffness: 300 };
 
 export function AuthForm({
-  action,
-  children,
+  mode,
   defaultEmail = "",
-  showName = false,
 }: {
-  action: NonNullable<
-    string | ((formData: FormData) => void | Promise<void>) | undefined
-  >;
-  children: React.ReactNode;
+  mode: "login" | "register";
   defaultEmail?: string;
-  showName?: boolean;
 }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [isSuccessful, setIsSuccessful] = useState(false);
+
+  const showName = mode === "register";
+
+  async function action(formData: FormData) {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    if (mode === "login") {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast({ type: "error", description: "邮箱或密码不正确" });
+        return;
+      }
+
+      setIsSuccessful(true);
+      router.push("/");
+      router.refresh();
+    } else {
+      const name = formData.get("name") as string;
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
+      });
+
+      if (error) {
+        const description = error.message.toLowerCase().includes("already")
+          ? "该邮箱已被注册"
+          : "注册失败，请稍后重试";
+        toast({ type: "error", description });
+        return;
+      }
+
+      toast({ type: "success", description: "注册成功！" });
+      setIsSuccessful(true);
+      router.push("/");
+      router.refresh();
+    }
+  }
+
   return (
     <Form action={action} className="flex flex-col gap-5">
       <div className="flex flex-col gap-4">
@@ -95,7 +141,9 @@ export function AuthForm({
         </motion.div>
       </div>
 
-      {children}
+      <SubmitButton isSuccessful={isSuccessful}>
+        {mode === "login" ? "登录" : "注册"}
+      </SubmitButton>
     </Form>
   );
 }

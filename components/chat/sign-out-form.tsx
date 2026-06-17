@@ -1,25 +1,25 @@
-import Form from "next/form";
+"use client";
 
-import { signOut } from "@/app/(auth)/auth";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export const SignOutForm = () => {
-  return (
-    <Form
-      action={async () => {
-        "use server";
+  const router = useRouter();
 
-        await signOut({
-          redirectTo: "/",
-        });
-      }}
-      className="w-full"
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <button
+      className="w-full px-1 py-0.5 text-left text-red-500"
+      onClick={handleSignOut}
+      type="button"
     >
-      <button
-        className="w-full px-1 py-0.5 text-left text-red-500"
-        type="submit"
-      >
-        退出登录
-      </button>
-    </Form>
+      退出登录
+    </button>
   );
 };
