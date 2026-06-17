@@ -7,9 +7,9 @@ import { ChatShell } from "@/components/chat/shell";
 import { ActiveChatProvider } from "@/hooks/use-active-chat";
 
 const enter = {
-  initial: { opacity: 0, x: 40 },
-  animate: { opacity: 1, x: 0 },
-  transition: { type: "spring", damping: 28, stiffness: 300 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  transition: { duration: 0.2, ease: "easeOut" },
 };
 
 export function ChatShellGate({ children }: { children: React.ReactNode }) {
