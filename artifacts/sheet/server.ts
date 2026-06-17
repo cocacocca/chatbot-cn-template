@@ -5,11 +5,11 @@ import { createDocumentHandler } from "@/lib/artifacts/server";
 
 export const sheetDocumentHandler = createDocumentHandler<"sheet">({
   kind: "sheet",
-  onCreateDocument: async ({ title, dataStream, modelId }) => {
+  onCreateDocument: async ({ title, dataStream, modelId, session }) => {
     let draftContent = "";
 
     const { fullStream } = streamText({
-      model: await getLanguageModel(modelId),
+      model: await getLanguageModel(modelId, session.user.id),
       system: `${sheetPrompt}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
       prompt: title,
     });
@@ -27,11 +27,17 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
 
     return draftContent;
   },
-  onUpdateDocument: async ({ document, description, dataStream, modelId }) => {
+  onUpdateDocument: async ({
+    document,
+    description,
+    dataStream,
+    modelId,
+    session,
+  }) => {
     let draftContent = "";
 
     const { fullStream } = streamText({
-      model: await getLanguageModel(modelId),
+      model: await getLanguageModel(modelId, session.user.id),
       system: `${updateDocumentPrompt(document.content, "sheet")}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
       prompt: description,
     });

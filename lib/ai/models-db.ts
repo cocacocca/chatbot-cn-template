@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 
 type ModelConfig = {
@@ -28,6 +28,7 @@ type ModelConfigRow = {
   is_title_model: boolean;
   created_at: string;
   updated_at: string;
+  user_id: string | null;
 };
 
 // 数据库行 → camelCase（name 用 id 作为 fallback，因数据库无 name 字段）
@@ -48,11 +49,13 @@ function toModelConfig(row: ModelConfigRow): ModelConfig {
 }
 
 // 客户端可调用，返回时脱敏 api_key
-export async function getAllModelConfigsForClient() {
-  const supabase = createAdminClient();
+// 使用 server client（受 RLS 保护），仅查询当前用户自己的模型
+export async function getAllModelConfigsForClient(userId: string) {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -67,11 +70,15 @@ export async function getAllModelConfigsForClient() {
 }
 
 // 服务端 AI 链路使用，不脱敏
-export async function getAllModelConfigs(): Promise<ModelConfig[]> {
-  const supabase = createAdminClient();
+// 使用 server client（受 RLS 保护），仅查询当前用户自己的模型
+export async function getAllModelConfigs(
+  userId: string
+): Promise<ModelConfig[]> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -81,12 +88,14 @@ export async function getAllModelConfigs(): Promise<ModelConfig[]> {
 }
 
 export async function getModelConfigById(
+  userId: string,
   id: string
 ): Promise<ModelConfig | null> {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
+    .eq("user_id", userId)
     .eq("id", id)
     .single();
 
@@ -100,11 +109,14 @@ export async function getModelConfigById(
   return toModelConfig(data as ModelConfigRow);
 }
 
-export async function getDefaultModelConfig(): Promise<ModelConfig | null> {
-  const supabase = createAdminClient();
+export async function getDefaultModelConfig(
+  userId: string
+): Promise<ModelConfig | null> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
+    .eq("user_id", userId)
     .eq("is_default", true)
     .single();
 
@@ -118,11 +130,14 @@ export async function getDefaultModelConfig(): Promise<ModelConfig | null> {
   return toModelConfig(data as ModelConfigRow);
 }
 
-export async function getTitleModelConfig(): Promise<ModelConfig | null> {
-  const supabase = createAdminClient();
+export async function getTitleModelConfig(
+  userId: string
+): Promise<ModelConfig | null> {
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
+    .eq("user_id", userId)
     .eq("is_title_model", true)
     .single();
 
@@ -136,18 +151,21 @@ export async function getTitleModelConfig(): Promise<ModelConfig | null> {
   return toModelConfig(data as ModelConfigRow);
 }
 
-export async function createModelConfig(config: {
-  id: string;
-  name?: string;
-  provider: string;
-  baseUrl?: string;
-  apiKey?: string;
-  capabilities?: any;
-  reasoningEffort?: string;
-  isDefault?: boolean;
-  isTitleModel?: boolean;
-}) {
-  const supabase = createAdminClient();
+export async function createModelConfig(
+  userId: string,
+  config: {
+    id: string;
+    name?: string;
+    provider: string;
+    baseUrl?: string;
+    apiKey?: string;
+    capabilities?: any;
+    reasoningEffort?: string;
+    isDefault?: boolean;
+    isTitleModel?: boolean;
+  }
+) {
+  const supabase = await createClient();
   // camelCase → snake_case（name 字段不存储，数据库无此字段）
   const {
     name: _name,
@@ -165,6 +183,7 @@ export async function createModelConfig(config: {
     reasoning_effort: reasoningEffort,
     is_default: isDefault,
     is_title_model: isTitleModel,
+    user_id: userId,
   };
   const { data, error } = await supabase
     .from("cct_model_config")
@@ -179,6 +198,7 @@ export async function createModelConfig(config: {
 }
 
 export async function updateModelConfig(
+  userId: string,
   id: string,
   changes: Partial<{
     name: string;
@@ -191,7 +211,7 @@ export async function updateModelConfig(
     isTitleModel: boolean;
   }>
 ) {
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   // camelCase → snake_case（name 字段不存储，数据库无此字段）
   const {
     name: _name,
@@ -222,10 +242,12 @@ export async function updateModelConfig(
     row.is_title_model = isTitleModel;
   }
 
+  // 同时校验 user_id 归属（RLS 也会校验，这里显式 .eq 双保险）
   const { data, error } = await supabase
     .from("cct_model_config")
     .update(row as Database["public"]["Tables"]["cct_model_config"]["Update"])
     .eq("id", id)
+    .eq("user_id", userId)
     .select()
     .single();
 
@@ -235,12 +257,14 @@ export async function updateModelConfig(
   return toModelConfig(data as ModelConfigRow);
 }
 
-export async function deleteModelConfig(id: string) {
-  const supabase = createAdminClient();
+export async function deleteModelConfig(userId: string, id: string) {
+  const supabase = await createClient();
+  // 同时校验 user_id 归属（RLS 也会校验，这里显式 .eq 双保险）
   const { error } = await supabase
     .from("cct_model_config")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", userId);
   if (error) {
     throw error;
   }

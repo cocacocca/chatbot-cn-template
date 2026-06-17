@@ -23,7 +23,6 @@ import { updateDocument } from "@/lib/ai/tools/update-document";
 import { isProductionEnvironment } from "@/lib/constants";
 import { getMessageCountByUserId } from "@/lib/db/server-queries";
 import { ChatbotError } from "@/lib/errors";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatMessage, DBMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
@@ -56,8 +55,8 @@ export async function POST(request: Request) {
 
     const session = { user: { id: user.id } };
 
-    const allowed = await isAllowedModelId(selectedChatModel);
-    const defaultId = await getDefaultModelId();
+    const allowed = await isAllowedModelId(user.id, selectedChatModel);
+    const defaultId = await getDefaultModelId(user.id);
     const chatModel = allowed ? selectedChatModel : defaultId;
 
     const messageCount = await getMessageCountByUserId();
@@ -68,10 +67,11 @@ export async function POST(request: Request) {
 
     const isToolApprovalFlow = Boolean(messages);
 
-    const adminClient = createAdminClient();
+    // 使用 server client（受 RLS 保护），chat/messages 查询自动按用户隔离
+    const serverClient = supabase;
 
     // 查询 chat 是否存在
-    const { data: chat } = await adminClient
+    const { data: chat } = await serverClient
       .from("cct_chat")
       .select("*")
       .eq("id", id)
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       if (chat.user_id !== user.id) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
-      const { data: dbMessages } = await adminClient
+      const { data: dbMessages } = await serverClient
         .from("cct_message")
         .select("*")
         .eq("chat_id", id)
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
         userId: user.id,
         title: "New chat",
       });
-      titlePromise = generateTitleFromUserMessage({ message });
+      titlePromise = generateTitleFromUserMessage({ message, userId: user.id });
     }
 
     let uiMessages: ChatMessage[];
@@ -164,9 +164,9 @@ export async function POST(request: Request) {
       ]);
     }
 
-    const allModels = await getChatModels();
+    const allModels = await getChatModels(user.id);
     const modelConfig = allModels.find((m) => m.id === chatModel);
-    const capabilitiesMap = await getModelCapabilitiesMap();
+    const capabilitiesMap = await getModelCapabilitiesMap(user.id);
     const capabilities = capabilitiesMap[chatModel];
     const isReasoningModel = capabilities?.reasoning === true;
     const supportsTools = capabilities?.tools === true;
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
-          model: await getLanguageModel(chatModel),
+          model: await getLanguageModel(chatModel, user.id),
           system: systemPrompt({ requestHints, supportsTools }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
@@ -229,7 +229,12 @@ export async function POST(request: Request) {
           try {
             const title = await titlePromise;
             dataStream.write({ type: "data-chat-title", data: title });
-            await adminClient.from("cct_chat").update({ title }).eq("id", id);
+            // 使用 server client（受 RLS 保护）更新 chat title
+            await supabase
+              .from("cct_chat")
+              .update({ title })
+              .eq("id", id)
+              .eq("user_id", user.id);
           } catch (_) {
             /* non-fatal */
           }
@@ -241,7 +246,8 @@ export async function POST(request: Request) {
           for (const finishedMsg of finishedMessages) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
             if (existingMsg) {
-              await adminClient
+              // 使用 server client（受 RLS 保护）更新 message parts
+              await supabase
                 .from("cct_message")
                 .update({ parts: finishedMsg.parts })
                 .eq("id", finishedMsg.id);
@@ -304,8 +310,8 @@ export async function DELETE(request: Request) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
-  const adminClient = createAdminClient();
-  const { data: chat } = await adminClient
+  // 使用 server client（受 RLS 保护），自动按用户隔离
+  const { data: chat } = await supabase
     .from("cct_chat")
     .select("*")
     .eq("id", id)
@@ -315,7 +321,7 @@ export async function DELETE(request: Request) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  await adminClient.from("cct_chat").delete().eq("id", id);
+  await supabase.from("cct_chat").delete().eq("id", id);
 
   return Response.json({ id }, { status: 200 });
 }

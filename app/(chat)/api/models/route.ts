@@ -16,7 +16,7 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const configs = await getAllModelConfigsForClient();
+  const configs = await getAllModelConfigsForClient(user.id);
 
   // 数据库为空时，从环境变量构造 fallback 模型（与 getChatModels 逻辑一致）
   let models = configs;
@@ -41,7 +41,7 @@ export async function GET() {
     }
   }
 
-  const capabilities = await getModelCapabilitiesMap();
+  const capabilities = await getModelCapabilitiesMap(user.id);
 
   return Response.json({
     models,
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await createModelConfig({
+    const result = await createModelConfig(user.id, {
       id,
       name,
       provider,
@@ -121,7 +121,7 @@ export async function PUT(request: Request) {
       return Response.json({ error: "id is required" }, { status: 400 });
     }
 
-    const result = await updateModelConfig(id, data);
+    const result = await updateModelConfig(user.id, id, data);
 
     return Response.json(result);
   } catch (_error) {
@@ -149,7 +149,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    await deleteModelConfig(id);
+    await deleteModelConfig(user.id, id);
     return Response.json({ success: true });
   } catch (_error) {
     return Response.json(

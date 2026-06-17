@@ -43,21 +43,23 @@ function getEnvFallbackChatModel(): ChatModel | null {
   };
 }
 
-export async function getChatModels(): Promise<ChatModel[]> {
-  const configs = await getAllModelConfigs();
-
+// userId 可选：传入时按用户隔离查询；未传入时仅返回环境变量 fallback
+export async function getChatModels(userId?: string): Promise<ChatModel[]> {
   // 数据库有模型 → 返回数据库模型列表
-  if (configs.length > 0) {
-    return configs.map((c) => ({
-      id: c.id,
-      name: c.name,
-      provider: c.provider,
-      description: `${c.name} by ${c.provider}`,
-      baseUrl: c.baseUrl,
-      reasoningEffort:
-        (c.reasoningEffort as ChatModel["reasoningEffort"]) ?? undefined,
-      capabilities: c.capabilities as ModelCapabilities,
-    }));
+  if (userId) {
+    const configs = await getAllModelConfigs(userId);
+    if (configs.length > 0) {
+      return configs.map((c) => ({
+        id: c.id,
+        name: c.name,
+        provider: c.provider,
+        description: `${c.name} by ${c.provider}`,
+        baseUrl: c.baseUrl,
+        reasoningEffort:
+          (c.reasoningEffort as ChatModel["reasoningEffort"]) ?? undefined,
+        capabilities: c.capabilities as ModelCapabilities,
+      }));
+    }
   }
 
   // 数据库为空 → 返回单一默认模型（从环境变量构造）
@@ -65,49 +67,69 @@ export async function getChatModels(): Promise<ChatModel[]> {
   return envModel ? [envModel] : [];
 }
 
-export async function getDefaultModelId(): Promise<string> {
-  const config = await getDefaultModelConfig();
-  if (config?.id) {
-    return config.id;
-  }
-  // fallback 1: 首个配置模型
-  const allConfigs = await getAllModelConfigs();
-  if (allConfigs[0]?.id) {
-    return allConfigs[0].id;
-  }
-  // fallback 2: 环境变量默认模型
-  return getEnvFallbackModelId() ?? "";
-}
-
-export async function getTitleModelId(): Promise<string> {
-  const config = await getTitleModelConfig();
-  if (config?.id) {
-    return config.id;
-  }
-  // fallback 1: 首个配置模型
-  const allConfigs = await getAllModelConfigs();
-  if (allConfigs[0]?.id) {
-    return allConfigs[0].id;
+// userId 可选：传入时按用户隔离查询；未传入时仅返回环境变量 fallback
+export async function getDefaultModelId(userId?: string): Promise<string> {
+  if (userId) {
+    const config = await getDefaultModelConfig(userId);
+    if (config?.id) {
+      return config.id;
+    }
+    // fallback 1: 首个配置模型
+    const allConfigs = await getAllModelConfigs(userId);
+    if (allConfigs[0]?.id) {
+      return allConfigs[0].id;
+    }
   }
   // fallback 2: 环境变量默认模型
   return getEnvFallbackModelId() ?? "";
 }
 
-export async function getModelCapabilitiesMap(): Promise<
-  Record<string, ModelCapabilities>
-> {
-  const models = await getChatModels();
+// userId 可选：传入时按用户隔离查询；未传入时仅返回环境变量 fallback
+export async function getTitleModelId(userId?: string): Promise<string> {
+  if (userId) {
+    const config = await getTitleModelConfig(userId);
+    if (config?.id) {
+      return config.id;
+    }
+    // fallback 1: 首个配置模型
+    const allConfigs = await getAllModelConfigs(userId);
+    if (allConfigs[0]?.id) {
+      return allConfigs[0].id;
+    }
+  }
+  // fallback 2: 环境变量默认模型
+  return getEnvFallbackModelId() ?? "";
+}
+
+// userId 可选：传入时按用户隔离查询；未传入时仅校验环境变量 fallback
+export async function getModelCapabilitiesMap(
+  userId?: string
+): Promise<Record<string, ModelCapabilities>> {
+  const models = await getChatModels(userId);
   return Object.fromEntries(models.map((m) => [m.id, m.capabilities]));
 }
 
-export async function isAllowedModelId(modelId: string): Promise<boolean> {
-  const configs = await getAllModelConfigs();
-
-  // 数据库为空 → 允许 modelId 匹配环境变量默认模型
-  if (configs.length === 0) {
-    return modelId === getEnvFallbackModelId();
+// userId 可选：传入时按用户隔离校验；未传入时仅校验环境变量 fallback
+export async function isAllowedModelId(
+  userId?: string,
+  modelId?: string
+): Promise<boolean> {
+  if (!modelId) {
+    return false;
   }
 
-  // 数据库有模型 → 检查数据库列表
-  return configs.some((c) => c.id === modelId);
+  if (userId) {
+    const configs = await getAllModelConfigs(userId);
+
+    // 数据库为空 → 允许 modelId 匹配环境变量默认模型
+    if (configs.length === 0) {
+      return modelId === getEnvFallbackModelId();
+    }
+
+    // 数据库有模型 → 检查数据库列表
+    return configs.some((c) => c.id === modelId);
+  }
+
+  // 未提供 userId → 仅允许环境变量默认模型
+  return modelId === getEnvFallbackModelId();
 }

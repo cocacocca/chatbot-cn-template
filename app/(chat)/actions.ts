@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
 import { deleteMessagesByChatIdAfterTimestamp } from "@/lib/ai/chat-db";
 import { titlePrompt } from "@/lib/ai/prompts";
 import { getTitleModel } from "@/lib/ai/providers";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getTextFromMessage } from "@/lib/utils";
 
@@ -16,11 +15,13 @@ export async function saveChatModelAsCookie(model: string) {
 
 export async function generateTitleFromUserMessage({
   message,
+  userId,
 }: {
   message: UIMessage;
+  userId: string;
 }) {
   const { text } = await generateText({
-    model: await getTitleModel(),
+    model: await getTitleModel(userId),
     system: titlePrompt,
     prompt: getTextFromMessage(message),
   });
@@ -39,8 +40,8 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
     throw new Error("Unauthorized");
   }
 
-  const adminClient = createAdminClient();
-  const { data: message, error: msgError } = await adminClient
+  // 使用 server client（受 RLS 保护），自动按用户隔离
+  const { data: message, error: msgError } = await supabase
     .from("cct_message")
     .select("*")
     .eq("id", id)
@@ -50,7 +51,7 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
     throw new Error("Message not found");
   }
 
-  const { data: chat } = await adminClient
+  const { data: chat } = await supabase
     .from("cct_chat")
     .select("*")
     .eq("id", message.chat_id)

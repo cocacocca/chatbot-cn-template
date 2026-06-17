@@ -127,6 +127,7 @@ export type Database = {
           is_title_model: boolean;
           created_at: string;
           updated_at: string;
+          user_id: string | null;
         };
         Insert: {
           id: string;
@@ -137,6 +138,7 @@ export type Database = {
           reasoning_effort?: string | null;
           is_default?: boolean;
           is_title_model?: boolean;
+          user_id?: string | null;
         };
         Update: {
           provider?: string;
@@ -147,6 +149,7 @@ export type Database = {
           is_default?: boolean;
           is_title_model?: boolean;
           updated_at?: string;
+          user_id?: string | null;
         };
         Relationships: [];
       };
