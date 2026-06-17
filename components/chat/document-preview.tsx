@@ -9,10 +9,10 @@ import {
   useMemo,
   useRef,
 } from "react";
-import useSWR from "swr";
 import { useArtifact } from "@/hooks/use-artifact";
-import type { Document } from "@/lib/db/schema";
-import { cn, fetcher } from "@/lib/utils";
+import { useDocuments } from "@/hooks/use-documents";
+import type { Document } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import type { ArtifactKind, UIArtifact } from "./artifact";
 import { CodeEditor } from "./code-editor";
 import { InlineDocumentSkeleton } from "./document-skeleton";
@@ -47,13 +47,8 @@ export function DocumentPreview({
 }: DocumentPreviewProps) {
   const { artifact, setArtifact } = useArtifact();
 
-  const { data: documents, isLoading: isDocumentsFetching } = useSWR<
-    Document[]
-  >(
-    result
-      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${result.id}`
-      : null,
-    fetcher
+  const { data: documents, isLoading: isDocumentsFetching } = useDocuments(
+    result ? (result.id ?? "") : ""
   );
 
   const previewDocument = useMemo(() => documents?.[0], [documents]);
@@ -107,7 +102,7 @@ export function DocumentPreview({
           kind: artifact.kind,
           content: artifact.content,
           id: artifact.documentId,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           userId: "noop",
         }
       : null;

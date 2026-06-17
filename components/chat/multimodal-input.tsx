@@ -17,7 +17,6 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { useModels } from "@/hooks/use-models";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import {
   ModelSelector,
@@ -30,7 +29,8 @@ import {
   ModelSelectorName,
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
-import type { ChatModel, ModelCapabilities } from "@/lib/ai/model-types";
+import { useModels } from "@/hooks/use-models";
+import type { ChatModel } from "@/lib/ai/model-types";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -168,13 +168,22 @@ function PureMultimodalInput({
         toast("Delete this chat?", {
           action: {
             label: "Delete",
-            onClick: () => {
-              fetch(
-                `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat?id=${chatId}`,
-                { method: "DELETE" }
-              );
-              router.push("/");
-              toast.success("Chat deleted");
+            onClick: async () => {
+              try {
+                const { createClient } = await import("@/lib/supabase/client");
+                const supabase = createClient();
+                const { error } = await supabase
+                  .from("chat")
+                  .delete()
+                  .eq("id", chatId);
+                if (error) {
+                  throw error;
+                }
+                router.push("/");
+                toast.success("Chat deleted");
+              } catch (_error) {
+                toast.error("删除对话失败");
+              }
             },
           },
         });
@@ -183,12 +192,22 @@ function PureMultimodalInput({
         toast("删除所有对话？", {
           action: {
             label: "全部删除",
-            onClick: () => {
-              fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history`, {
-                method: "DELETE",
-              });
-              router.push("/");
-              toast.success("All chats deleted");
+            onClick: async () => {
+              try {
+                const { createClient } = await import("@/lib/supabase/client");
+                const supabase = createClient();
+                const { error } = await supabase
+                  .from("chat")
+                  .delete()
+                  .neq("id", "");
+                if (error) {
+                  throw error;
+                }
+                router.push("/");
+                toast.success("All chats deleted");
+              } catch (_error) {
+                toast.error("删除所有对话失败");
+              }
             },
           },
         });
@@ -618,8 +637,7 @@ function PureModelSelectorCompact({
   const { models: activeModels, capabilities } = useModels();
 
   const selectedModel =
-    activeModels.find((m) => m.id === selectedModelId) ??
-    activeModels[0];
+    activeModels.find((m) => m.id === selectedModelId) ?? activeModels[0];
   const [provider] = (selectedModel?.id ?? "").split("/");
 
   if (!selectedModel || activeModels.length === 0) {

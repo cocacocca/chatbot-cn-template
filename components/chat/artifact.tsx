@@ -11,16 +11,15 @@ import {
   useRef,
   useState,
 } from "react";
-import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { codeArtifact } from "@/artifacts/code/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { useArtifact } from "@/hooks/use-artifact";
-import type { Document, Vote } from "@/lib/db/schema";
-import type { Attachment, ChatMessage } from "@/lib/types";
-import { fetcher } from "@/lib/utils";
+import { useDocuments } from "@/hooks/use-documents";
+import { createClient } from "@/lib/supabase/client";
+import type { Attachment, ChatMessage, Document, Vote } from "@/lib/types";
 import { useSidebar } from "../ui/sidebar";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
@@ -93,11 +92,10 @@ function PureArtifact({
     data: documents,
     isLoading: isDocumentsFetching,
     mutate: mutateDocuments,
-  } = useSWR<Document[]>(
+  } = useDocuments(
     artifact.documentId !== "init" && artifact.status !== "streaming"
-      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`
-      : null,
-    fetcher
+      ? artifact.documentId
+      : ""
   );
 
   const [mode, setMode] = useState<"edit" | "diff">("edit");
@@ -145,16 +143,13 @@ function PureArtifact({
     mutateDocuments();
   }, [mutateDocuments]);
 
-  const { mutate } = useSWRConfig();
-
   const handleContentChange = useCallback(
     (updatedContent: string) => {
       if (!artifact) {
         return;
       }
 
-      mutate<Document[]>(
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
+      mutateDocuments(
         async (currentDocuments) => {
           if (!currentDocuments) {
             return [];
@@ -172,18 +167,26 @@ function PureArtifact({
             return currentDocuments;
           }
 
-          await fetch(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
-            {
-              method: "POST",
-              body: JSON.stringify({
-                title: artifact.title,
-                content: updatedContent,
-                kind: artifact.kind,
-                isManualEdit: true,
-              }),
-            }
-          );
+          const supabase = createClient();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error("User not authenticated");
+          }
+
+          const { error } = await supabase.from("document").insert({
+            id: artifact.documentId,
+            created_at: new Date().toISOString(),
+            user_id: user.id,
+            content: updatedContent,
+            kind: artifact.kind,
+            title: artifact.title,
+          });
+
+          if (error) {
+            throw error;
+          }
 
           setIsContentDirty(false);
 
@@ -196,7 +199,7 @@ function PureArtifact({
         { revalidate: false }
       );
     },
-    [artifact, mutate]
+    [artifact, mutateDocuments]
   );
 
   const latestContentRef = useRef<string>("");

@@ -21,11 +21,11 @@ import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
-import { useAutoResume } from "@/hooks/use-auto-resume";
-import type { Vote } from "@/lib/db/schema";
+import { useVotes } from "@/hooks/use-votes";
 import { ChatbotError } from "@/lib/errors";
-import type { ChatMessage } from "@/lib/types";
-import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import type { ChatMessage, Vote } from "@/lib/types";
+import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 
 type ActiveChatContextValue = {
   chatId: string;
@@ -79,10 +79,35 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState("");
 
   const { data: chatData, isLoading } = useSWR(
-    isNewChat
-      ? null
-      : `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/messages?chatId=${chatId}`,
-    fetcher,
+    isNewChat ? null : ["chat-data", chatId],
+    async () => {
+      const supabase = createClient();
+      const [messagesRes, chatRes] = await Promise.all([
+        supabase
+          .from("message")
+          .select("*")
+          .eq("chat_id", chatId)
+          .order("created_at", { ascending: true }),
+        supabase.from("chat").select("visibility").eq("id", chatId).single(),
+      ]);
+      if (messagesRes.error) {
+        throw messagesRes.error;
+      }
+      if (chatRes.error) {
+        throw chatRes.error;
+      }
+      return {
+        messages: (messagesRes.data ?? []).map((m) => ({
+          id: m.id,
+          chatId: m.chat_id,
+          role: m.role,
+          parts: m.parts,
+          attachments: m.attachments,
+          createdAt: m.created_at,
+        })) as ChatMessage[],
+        visibility: (chatRes.data?.visibility ?? "private") as VisibilityType,
+      };
+    },
     { revalidateOnFocus: false }
   );
 
@@ -100,7 +125,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     status,
     stop,
     regenerate,
-    resumeStream,
     addToolApprovalResponse,
   } = useChat<ChatMessage>({
     id: chatId,
@@ -221,21 +245,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [sendMessage, chatId]);
 
-  useAutoResume({
-    autoResume: !isNewChat && !!chatData,
-    initialMessages,
-    resumeStream,
-    setMessages,
-  });
+  // RLS 下客户端只能查到自己的 chat，所以 isReadonly 始终为 false
+  const isReadonly = false;
 
-  const isReadonly = isNewChat ? false : (chatData?.isReadonly ?? false);
-
-  const { data: votes } = useSWR<Vote[]>(
-    !isReadonly && messages.length >= 2
-      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/vote?chatId=${chatId}`
-      : null,
-    fetcher,
-    { revalidateOnFocus: false }
+  const { data: votes } = useVotes(
+    !isReadonly && messages.length >= 2 ? chatId : ""
   );
 
   const value = useMemo<ActiveChatContextValue>(
@@ -268,7 +282,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       addToolApprovalResponse,
       input,
       visibility,
-      isReadonly,
       isNewChat,
       isLoading,
       votes,

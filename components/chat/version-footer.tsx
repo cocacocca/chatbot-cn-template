@@ -1,13 +1,12 @@
 "use client";
 
-import { isAfter } from "date-fns";
 import { motion } from "framer-motion";
 import { ChevronLeftIcon, ChevronRightIcon, DiffIcon } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
-import { useSWRConfig } from "swr";
 import { useArtifact } from "@/hooks/use-artifact";
-import type { Document } from "@/lib/db/schema";
+import { createClient } from "@/lib/supabase/client";
+import type { Document } from "@/lib/types";
 import { cn, getDocumentTimestampByIndex } from "@/lib/utils";
 import { LoaderIcon } from "./icons";
 
@@ -28,7 +27,6 @@ export const VersionFooter = ({
 }: VersionFooterProps) => {
   const { artifact } = useArtifact();
 
-  const { mutate } = useSWRConfig();
   const [isMutating, setIsMutating] = useState(false);
 
   if (!documents) {
@@ -90,35 +88,20 @@ export const VersionFooter = ({
             setIsMutating(true);
 
             try {
-              await mutate(
-                `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
-                await fetch(
-                  `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}&timestamp=${getDocumentTimestampByIndex(
-                    documents,
-                    currentVersionIndex
-                  )}`,
-                  {
-                    method: "DELETE",
-                  }
-                ),
-                {
-                  optimisticData: documents
-                    ? [
-                        ...documents.filter((document) =>
-                          isAfter(
-                            new Date(document.createdAt),
-                            new Date(
-                              getDocumentTimestampByIndex(
-                                documents,
-                                currentVersionIndex
-                              )
-                            )
-                          )
-                        ),
-                      ]
-                    : [],
-                }
+              const timestamp = getDocumentTimestampByIndex(
+                documents,
+                currentVersionIndex
               );
+              const supabase = createClient();
+              const { error } = await supabase
+                .from("document")
+                .delete()
+                .eq("id", artifact.documentId)
+                .lte("created_at", timestamp);
+
+              if (error) {
+                throw error;
+              }
             } finally {
               setIsMutating(false);
             }

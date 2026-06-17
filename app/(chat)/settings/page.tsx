@@ -192,8 +192,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-2xl font-semibold">模型设置</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              配置用于聊天的 AI 模型，每个模型可设置独立的 API Key 和 Base
-              URL。
+              配置用于聊天的 AI 模型，每个模型可设置独立的 API Key 和 Base URL。
             </p>
           </div>
           <Button onClick={openCreate} size="sm">

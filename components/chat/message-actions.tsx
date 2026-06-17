@@ -1,10 +1,9 @@
 import equal from "fast-deep-equal";
 import { memo } from "react";
 import { toast } from "sonner";
-import { useSWRConfig } from "swr";
 import { useCopyToClipboard } from "usehooks-ts";
-import type { Vote } from "@/lib/db/schema";
-import type { ChatMessage } from "@/lib/types";
+import { useVotes, voteMessageClient } from "@/hooks/use-votes";
+import type { ChatMessage, Vote } from "@/lib/types";
 import {
   MessageAction as Action,
   MessageActions as Actions,
@@ -24,8 +23,8 @@ export function PureMessageActions({
   isLoading: boolean;
   onEdit?: () => void;
 }) {
-  const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
+  const { mutate: mutateVotes } = useVotes(chatId);
 
   if (isLoading) {
     return null;
@@ -88,23 +87,12 @@ export function PureMessageActions({
         data-testid="message-upvote"
         disabled={vote?.isUpvoted}
         onClick={() => {
-          const upvote = fetch(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/vote`,
-            {
-              method: "PATCH",
-              body: JSON.stringify({
-                chatId,
-                messageId: message.id,
-                type: "up",
-              }),
-            }
-          );
+          const upvote = voteMessageClient(chatId, message.id, true);
 
           toast.promise(upvote, {
             loading: "正在点赞...",
             success: () => {
-              mutate<Vote[]>(
-                `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/vote?chatId=${chatId}`,
+              mutateVotes(
                 (currentVotes) => {
                   if (!currentVotes) {
                     return [];
@@ -141,23 +129,12 @@ export function PureMessageActions({
         data-testid="message-downvote"
         disabled={vote && !vote.isUpvoted}
         onClick={() => {
-          const downvote = fetch(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/vote`,
-            {
-              method: "PATCH",
-              body: JSON.stringify({
-                chatId,
-                messageId: message.id,
-                type: "down",
-              }),
-            }
-          );
+          const downvote = voteMessageClient(chatId, message.id, false);
 
           toast.promise(downvote, {
             loading: "正在点踩...",
             success: () => {
-              mutate<Vote[]>(
-                `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/vote?chatId=${chatId}`,
+              mutateVotes(
                 (currentVotes) => {
                   if (!currentVotes) {
                     return [];
