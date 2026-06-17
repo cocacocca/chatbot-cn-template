@@ -45,13 +45,6 @@ export type DBMessage = {
   createdAt: Date;
 };
 
-// 投票类型（对应 public.vote 表，字段名 camelCase）
-export type Vote = {
-  chatId: string;
-  messageId: string;
-  isUpvoted: boolean;
-};
-
 // 聊天历史项类型（对应 public.chat 表，字段名 camelCase）
 export type Chat = {
   id: string;

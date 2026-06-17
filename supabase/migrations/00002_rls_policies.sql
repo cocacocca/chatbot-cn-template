@@ -2,7 +2,6 @@
 alter table public.cct_user_profile enable row level security;
 alter table public.cct_chat enable row level security;
 alter table public.cct_message enable row level security;
-alter table public.cct_vote enable row level security;
 alter table public.cct_document enable row level security;
 alter table public.cct_suggestion enable row level security;
 
@@ -73,27 +72,6 @@ create policy "users_delete_messages_in_own_chat"
     exists (
       select 1 from public.cct_chat c
       where c.id = cct_message.chat_id and c.user_id = auth.uid()
-    )
-  );
-
--- ---------- cct_vote ----------
-drop policy if exists "users_select_votes_in_own_or_public_chat" on public.cct_vote;
-create policy "users_select_votes_in_own_chat"
-  on public.cct_vote for select
-  using (
-    exists (
-      select 1 from public.cct_chat c
-      where c.id = cct_vote.chat_id
-        and c.user_id = auth.uid()
-    )
-  );
-
-create policy "users_modify_votes_in_own_chat"
-  on public.cct_vote for all
-  using (
-    exists (
-      select 1 from public.cct_chat c
-      where c.id = cct_vote.chat_id and c.user_id = auth.uid()
     )
   );
 

@@ -1,6 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import type { ChatMessage, Vote } from "@/lib/types";
+import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { MessageContent, MessageResponse } from "../ai-elements/message";
 import { Shimmer } from "../ai-elements/shimmer";
@@ -22,9 +22,8 @@ import { Weather } from "./weather";
 
 const PurePreviewMessage = ({
   addToolApprovalResponse,
-  chatId,
+  chatId: _chatId,
   message,
-  vote,
   isLoading,
   setMessages: _setMessages,
   regenerate: _regenerate,
@@ -34,7 +33,6 @@ const PurePreviewMessage = ({
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
   chatId: string;
   message: ChatMessage;
-  vote: Vote | undefined;
   isLoading: boolean;
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
@@ -295,12 +293,10 @@ const PurePreviewMessage = ({
 
   const actions = (
     <MessageActions
-      chatId={chatId}
       isLoading={isLoading}
       key={`action-${message.id}`}
       message={message}
       onEdit={onEdit ? () => onEdit(message) : undefined}
-      vote={vote}
     />
   );
 

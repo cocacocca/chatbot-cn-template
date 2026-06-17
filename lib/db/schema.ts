@@ -10,10 +10,3 @@ export type Chat = {
   title: string | null;
   createdAt: string;
 };
-
-// Vote 类型（对应 public.vote 表，字段名 camelCase）
-export type Vote = {
-  chatId: string;
-  messageId: string;
-  isUpvoted: boolean;
-};

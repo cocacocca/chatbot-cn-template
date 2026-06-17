@@ -64,22 +64,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      cct_vote: {
-        Row: {
-          chat_id: string;
-          message_id: string;
-          is_upvoted: boolean;
-        };
-        Insert: {
-          chat_id: string;
-          message_id: string;
-          is_upvoted: boolean;
-        };
-        Update: {
-          is_upvoted?: boolean;
-        };
-        Relationships: [];
-      };
       cct_document: {
         Row: {
           id: string;

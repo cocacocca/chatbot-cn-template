@@ -50,14 +50,6 @@ create table public.cct_message (
 
 create index on public.cct_message (chat_id, created_at asc);
 
--- ---------- public.cct_vote ----------
-create table public.cct_vote (
-  chat_id uuid not null references public.cct_chat(id) on delete cascade,
-  message_id uuid not null references public.cct_message(id) on delete cascade,
-  is_upvoted boolean not null,
-  primary key (chat_id, message_id)
-);
-
 -- ---------- public.cct_document ----------
 create table public.cct_document (
   id uuid not null,

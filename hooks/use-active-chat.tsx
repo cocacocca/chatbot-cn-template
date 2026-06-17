@@ -20,10 +20,9 @@ import { unstable_serialize } from "swr/infinite";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { toast } from "@/components/chat/toast";
-import { useVotes } from "@/hooks/use-votes";
 import { ChatbotError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
-import type { ChatMessage, Vote } from "@/lib/types";
+import type { ChatMessage } from "@/lib/types";
 import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 
 type ActiveChatContextValue = {
@@ -38,7 +37,6 @@ type ActiveChatContextValue = {
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
   isLoading: boolean;
-  votes: Vote[] | undefined;
   currentModelId: string;
   setCurrentModelId: (id: string) => void;
 };
@@ -231,8 +229,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [sendMessage, chatId]);
 
-  const { data: votes } = useVotes(messages.length >= 2 ? chatId : "");
-
   const value = useMemo<ActiveChatContextValue>(
     () => ({
       chatId,
@@ -246,7 +242,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       input,
       setInput,
       isLoading: !isNewChat && isLoading,
-      votes,
       currentModelId,
       setCurrentModelId,
     }),
@@ -262,7 +257,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       input,
       isNewChat,
       isLoading,
-      votes,
       currentModelId,
     ]
   );
