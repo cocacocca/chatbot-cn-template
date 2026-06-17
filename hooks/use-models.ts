@@ -18,7 +18,10 @@ export type ModelConfig = {
 
 export type ModelsResponse = {
   models: ModelConfig[];
-  capabilities: Record<string, { tools: boolean; vision: boolean; reasoning: boolean }>;
+  capabilities: Record<
+    string,
+    { tools: boolean; vision: boolean; reasoning: boolean }
+  >;
 };
 
 export const MODELS_SWR_KEY = "/api/models";
