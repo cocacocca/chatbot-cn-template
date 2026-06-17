@@ -17,6 +17,7 @@ import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { useArtifact } from "@/hooks/use-artifact";
 import { useDocuments } from "@/hooks/use-documents";
+import { saveDocument } from "@/lib/queries/client/document-queries";
 import { createClient } from "@/lib/supabase/client";
 import type { Attachment, ChatMessage, Document } from "@/lib/types";
 import { useSidebar } from "../ui/sidebar";
@@ -167,18 +168,13 @@ function PureArtifact({
             throw new Error("User not authenticated");
           }
 
-          const { error } = await supabase.from("cct_document").insert({
+          await saveDocument({
             id: artifact.documentId,
-            created_at: new Date().toISOString(),
-            user_id: user.id,
+            userId: user.id,
             content: updatedContent,
             kind: artifact.kind,
             title: artifact.title,
           });
-
-          if (error) {
-            throw error;
-          }
 
           setIsContentDirty(false);
 

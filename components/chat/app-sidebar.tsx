@@ -33,7 +33,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useUser } from "@/hooks/use-user";
-import { createClient } from "@/lib/supabase/client";
+import { deleteAllChats } from "@/lib/queries/client/chat-queries";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,11 +61,7 @@ export function AppSidebar() {
     });
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from("cct_chat").delete().neq("id", "");
-      if (error) {
-        throw error;
-      }
+      await deleteAllChats();
       toast.success("已删除所有对话");
     } catch (_error) {
       toast.error("删除对话失败");

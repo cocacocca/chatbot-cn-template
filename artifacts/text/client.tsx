@@ -11,8 +11,9 @@ import {
   UndoIcon,
 } from "@/components/chat/icons";
 import { Editor } from "@/components/chat/text-editor";
+import { getLatestDocument } from "@/lib/queries/client/document-queries";
+import { getSuggestions } from "@/lib/queries/client/suggestion-queries";
 import type { Suggestion } from "@/lib/types";
-import { getSuggestions } from "../actions";
 
 type TextArtifactMetadata = {
   suggestions: Suggestion[];
@@ -22,11 +23,14 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
   kind: "text",
   description: "Useful for text content, like drafting essays and emails.",
   initialize: async ({ documentId, setMetadata }) => {
-    const suggestions = await getSuggestions({ documentId });
-
-    setMetadata({
-      suggestions,
-    });
+    let suggestions: Suggestion[] = [];
+    try {
+      const latestDoc = await getLatestDocument(documentId);
+      suggestions = await getSuggestions(documentId, latestDoc.createdAt);
+    } catch (_error) {
+      // 文档不存在或查询失败时，使用空建议列表
+    }
+    setMetadata({ suggestions });
   },
   onStreamPart: ({ streamPart, setMetadata, setArtifact }) => {
     if (streamPart.type === "data-suggestion") {

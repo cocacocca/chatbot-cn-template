@@ -21,7 +21,7 @@ import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { toast } from "@/components/chat/toast";
 import { ChatbotError } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/client";
+import { getMessagesByChatId } from "@/lib/queries/client/chat-queries";
 import type { ChatMessage } from "@/lib/types";
 import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 
@@ -76,24 +76,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const { data: chatData, isLoading } = useSWR(
     isNewChat ? null : ["chat-data", chatId],
     async () => {
-      const supabase = createClient();
-      const { data: messagesData, error: messagesError } = await supabase
-        .from("cct_message")
-        .select("*")
-        .eq("chat_id", chatId)
-        .order("created_at", { ascending: true });
-      if (messagesError) {
-        throw messagesError;
-      }
+      const messages = await getMessagesByChatId(chatId);
       return {
-        messages: (messagesData ?? []).map((m) => ({
-          id: m.id,
-          chatId: m.chat_id,
-          role: m.role,
-          parts: m.parts,
-          attachments: m.attachments,
-          createdAt: m.created_at,
-        })) as ChatMessage[],
+        messages: messages as unknown as ChatMessage[],
       };
     },
     { revalidateOnFocus: false }

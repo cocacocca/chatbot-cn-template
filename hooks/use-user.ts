@@ -2,14 +2,9 @@
 
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import type { UserProfile } from "@/lib/queries/client/types";
+import { getProfile } from "@/lib/queries/client/user-queries";
 import { createClient } from "@/lib/supabase/client";
-
-type UserProfile = {
-  id: string;
-  name: string | null;
-  image: string | null;
-  is_anonymous: boolean;
-};
 
 export function useUser() {
   const supabase = createClient();
@@ -32,13 +27,9 @@ export function useUser() {
       setLoading(false);
 
       if (user) {
-        const { data } = await supabase
-          .from("cct_user_profile")
-          .select("*")
-          .eq("id", user.id)
-          .single();
+        const profileData = await getProfile();
         if (mounted) {
-          setProfile(data);
+          setProfile(profileData);
         }
       } else {
         setProfile(null);

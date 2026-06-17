@@ -31,6 +31,7 @@ import {
 } from "@/components/ai-elements/model-selector";
 import { useModels } from "@/hooks/use-models";
 import type { ChatModel } from "@/lib/ai/model-types";
+import { deleteAllChats, deleteChat } from "@/lib/queries/client/chat-queries";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -167,15 +168,7 @@ function PureMultimodalInput({
             label: "Delete",
             onClick: async () => {
               try {
-                const { createClient } = await import("@/lib/supabase/client");
-                const supabase = createClient();
-                const { error } = await supabase
-                  .from("cct_chat")
-                  .delete()
-                  .eq("id", chatId);
-                if (error) {
-                  throw error;
-                }
+                await deleteChat(chatId);
                 router.push("/");
                 toast.success("Chat deleted");
               } catch (_error) {
@@ -191,15 +184,7 @@ function PureMultimodalInput({
             label: "全部删除",
             onClick: async () => {
               try {
-                const { createClient } = await import("@/lib/supabase/client");
-                const supabase = createClient();
-                const { error } = await supabase
-                  .from("cct_chat")
-                  .delete()
-                  .neq("id", "");
-                if (error) {
-                  throw error;
-                }
+                await deleteAllChats();
                 router.push("/");
                 toast.success("All chats deleted");
               } catch (_error) {

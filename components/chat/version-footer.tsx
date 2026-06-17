@@ -5,7 +5,7 @@ import { ChevronLeftIcon, ChevronRightIcon, DiffIcon } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { useArtifact } from "@/hooks/use-artifact";
-import { createClient } from "@/lib/supabase/client";
+import { deleteDocument } from "@/lib/queries/client/document-queries";
 import type { Document } from "@/lib/types";
 import { cn, getDocumentTimestampByIndex } from "@/lib/utils";
 import { LoaderIcon } from "./icons";
@@ -92,16 +92,10 @@ export const VersionFooter = ({
                 documents,
                 currentVersionIndex
               );
-              const supabase = createClient();
-              const { error } = await supabase
-                .from("cct_document")
-                .delete()
-                .eq("id", artifact.documentId)
-                .lte("created_at", timestamp);
-
-              if (error) {
-                throw error;
-              }
+              await deleteDocument(
+                artifact.documentId,
+                new Date(timestamp).toISOString()
+              );
             } finally {
               setIsMutating(false);
             }

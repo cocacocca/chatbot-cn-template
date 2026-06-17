@@ -24,6 +24,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useUser } from "@/hooks/use-user";
+import { deleteChat } from "@/lib/queries/client/chat-queries";
 import { createClient } from "@/lib/supabase/client";
 import type { Chat } from "@/lib/types";
 import { LoaderIcon } from "./icons";
@@ -194,14 +195,7 @@ export function SidebarHistory() {
     );
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("cct_chat")
-        .delete()
-        .eq("id", chatToDelete as string);
-      if (error) {
-        throw error;
-      }
+      await deleteChat(chatToDelete as string);
       toast.success("对话已删除");
     } catch (_error) {
       toast.error("删除对话失败");
