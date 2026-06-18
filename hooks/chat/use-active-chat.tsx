@@ -1,3 +1,4 @@
+/** @file 当前活跃会话上下文，统一管理聊天状态、消息收发与模型切换 */
 "use client";
 
 import type { UseChatHelpers } from "@ai-sdk/react";
@@ -25,6 +26,7 @@ import { getMessagesByChatId } from "@/lib/queries/client/chat-queries";
 import type { ChatMessage } from "@/lib/types";
 import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 
+/** 活跃会话上下文值，对外暴露的会话状态与操作集合 */
 type ActiveChatContextValue = {
   chatId: string;
   messages: ChatMessage[];
@@ -43,11 +45,25 @@ type ActiveChatContextValue = {
 
 const ActiveChatContext = createContext<ActiveChatContextValue | null>(null);
 
+/**
+ * 从路由路径中解析会话 ID
+ *
+ * @param pathname 当前路由路径
+ * @returns 命中 `/chat/:id` 时返回会话 ID，否则返回 null（表示新会话）
+ */
 function extractChatId(pathname: string): string | null {
   const match = pathname.match(/\/chat\/([^/]+)/);
   return match ? match[1] : null;
 }
 
+/**
+ * 活跃会话 Provider
+ *
+ * 依据当前路由决定加载已有会话还是新建会话，封装 AI SDK 的 useChat，
+ * 统一处理消息加载、模型切换、工具审批续传、URL query 自动发送等逻辑。
+ *
+ * @param children 子组件
+ */
 export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { setDataStream } = useDataStream();
@@ -58,6 +74,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const newChatIdRef = useRef(generateUUID());
   const prevPathnameRef = useRef(pathname);
 
+  // 路由变化时为新会话生成新的临时 ID
   if (isNewChat && prevPathnameRef.current !== pathname) {
     newChatIdRef.current = generateUUID();
   }
@@ -66,6 +83,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const chatId = chatIdFromUrl ?? newChatIdRef.current;
 
   const [currentModelId, setCurrentModelId] = useState<string>("");
+  // 使用 ref 在 transport 回调中读取最新模型 ID，避免闭包陈旧
   const currentModelIdRef = useRef(currentModelId);
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -73,6 +91,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const [input, setInput] = useState("");
 
+  // 仅在已有会话场景下加载历史消息，新会话不触发请求
   const { data: chatData, isLoading } = useSWR(
     isNewChat ? null : ["chat-data", chatId],
     async () => {
@@ -100,6 +119,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     id: chatId,
     messages: initialMessages,
     generateId: generateUUID,
+    // 当最后一条消息为工具审批通过时自动续传
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       const lastMessage = currentMessages.at(-1);
       return (
@@ -117,6 +137,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest(request) {
         const lastMessage = request.messages.at(-1);
+        // 判断是否为工具审批续传场景：最后一条非用户消息，或消息中存在审批相关状态
         const isToolApprovalContinuation =
           lastMessage?.role !== "user" ||
           request.messages.some((msg) =>
@@ -131,6 +152,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         return {
           body: {
             id: request.id,
+            // 工具审批续传时发送完整消息列表，普通发送仅发送最后一条
             ...(isToolApprovalContinuation
               ? { messages: request.messages }
               : { message: lastMessage }),
@@ -144,6 +166,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
     },
     onFinish: () => {
+      // 会话结束后刷新侧边栏历史列表
       mutate(unstable_serialize(getChatHistoryPaginationKey));
     },
     onError: (error) => {
@@ -158,12 +181,14 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // 记录已加载过消息的会话 ID，避免重复设置
   const loadedChatIds = useRef(new Set<string>());
 
   if (isNewChat && !loadedChatIds.current.has(newChatIdRef.current)) {
     loadedChatIds.current.add(newChatIdRef.current);
   }
 
+  // 会话历史消息加载完成后同步到 useChat 状态
   useEffect(() => {
     if (loadedChatIds.current.has(chatId)) {
       return;
@@ -174,6 +199,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [chatId, chatData?.messages, setMessages]);
 
+  // 会话切换时清空消息，避免上一会话内容残留
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
     if (prevChatIdRef.current !== chatId) {
@@ -184,6 +210,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [chatId, isNewChat, setMessages]);
 
+  // 从 cookie 中恢复用户上次选择的模型
   useEffect(() => {
     if (chatData && !isNewChat) {
       const cookieModel = document.cookie
@@ -196,6 +223,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [chatData, isNewChat]);
 
+  // 处理 URL 中携带的 query 参数：自动发送一次用户消息
   const hasAppendedQueryRef = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -253,6 +281,13 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * 活跃会话 Hook
+ *
+ * 必须在 `ActiveChatProvider` 内部使用，获取当前会话的状态与操作方法。
+ *
+ * @returns 活跃会话上下文值
+ */
 export function useActiveChat() {
   const context = useContext(ActiveChatContext);
   if (!context) {
