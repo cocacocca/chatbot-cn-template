@@ -14,7 +14,12 @@ as $$
 $$;
 
 -- View: cct_document_latest
-create or replace view public.cct_document_latest as
-select distinct on (id) *
-from public.cct_document
-order by id, created_at desc;
+create view public.cct_document_latest with (security_invoker = on) as
+  SELECT DISTINCT ON (id) id,
+     created_at,
+     user_id,
+     content,
+     kind,
+     title
+    FROM cct_document
+   ORDER BY id, created_at DESC;

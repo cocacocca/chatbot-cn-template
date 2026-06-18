@@ -22,7 +22,7 @@ test.describe("Model Selector", () => {
       .first();
     await modelButton.click();
 
-    await expect(page.getByPlaceholder("Search models...")).toBeVisible();
+    await expect(page.getByPlaceholder("搜索模型...")).toBeVisible();
   });
 
   test("can search for models", async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe("Model Selector", () => {
       .first();
     await modelButton.click();
 
-    const searchInput = page.getByPlaceholder("Search models...");
+    const searchInput = page.getByPlaceholder("搜索模型...");
     await searchInput.fill("Mistral");
 
     await expect(page.getByText("Mistral Small").first()).toBeVisible();
@@ -45,11 +45,11 @@ test.describe("Model Selector", () => {
       .first();
     await modelButton.click();
 
-    await expect(page.getByPlaceholder("Search models...")).toBeVisible();
+    await expect(page.getByPlaceholder("搜索模型...")).toBeVisible();
 
     await page.keyboard.press("Escape");
 
-    await expect(page.getByPlaceholder("Search models...")).not.toBeVisible();
+    await expect(page.getByPlaceholder("搜索模型...")).not.toBeVisible();
   });
 
   test("shows model provider groups", async ({ page }) => {
@@ -59,8 +59,8 @@ test.describe("Model Selector", () => {
       .first();
     await modelButton.click();
 
-    await expect(page.getByText("Mistral")).toBeVisible();
-    await expect(page.getByText("Moonshot")).toBeVisible();
+    await expect(page.getByText("Mistral", { exact: true })).toBeVisible();
+    await expect(page.getByText("Moonshot", { exact: true })).toBeVisible();
   });
 
   test("can select a different model", async ({ page }) => {
@@ -72,7 +72,7 @@ test.describe("Model Selector", () => {
 
     await page.getByText("Mistral Small").first().click();
 
-    await expect(page.getByPlaceholder("Search models...")).not.toBeVisible();
+    await expect(page.getByPlaceholder("搜索模型...")).not.toBeVisible();
 
     await expect(
       page.locator("button").filter({ hasText: "Mistral Small" }).first()
