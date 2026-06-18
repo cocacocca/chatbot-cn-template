@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /* Use process.env.PORT by default and fallback to port 3000 */
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 30_000;
 
 /**
  * Set webServer.url and use.baseURL with the location
@@ -83,7 +83,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: "pnpm dev",
-    url: `${baseURL}/ping`,
+    url: `${baseURL}`,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI,
   },
