@@ -21,11 +21,12 @@ export async function getDocumentById(id: string): Promise<Document | null> {
     return null;
   }
   return {
-    id: data.id,
-    createdAt: data.created_at,
-    userId: data.user_id,
+    id: data.id ?? "",
+    createdAt: data.created_at ?? "",
+    userId: data.user_id ?? "",
     content: data.content ?? "",
-    kind: data.kind,
+    // view 字段允许 null，用默认值兜底并断言为联合类型
+    kind: (data.kind ?? "text") as "text" | "code" | "image" | "sheet",
     title: data.title ?? "",
   };
 }
@@ -77,9 +78,10 @@ export async function updateDocumentContent(
 
   const { error } = await supabase.from("cct_document").insert({
     id: documentId,
-    user_id: latest.user_id,
+    user_id: latest.user_id ?? "",
     content,
-    kind: latest.kind,
+    // view 字段允许 null，用默认值兜底并断言为联合类型
+    kind: (latest.kind ?? "text") as "text" | "code" | "image" | "sheet",
     title: latest.title,
   });
   if (error) {

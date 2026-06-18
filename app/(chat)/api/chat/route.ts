@@ -24,6 +24,7 @@ import { isProductionEnvironment } from "@/lib/constants";
 import { getMessageCountByUserId } from "@/lib/db/server-queries";
 import { ChatbotError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/types";
 import type { ChatMessage, DBMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -247,9 +248,10 @@ export async function POST(request: Request) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
             if (existingMsg) {
               // 使用 server client（受 RLS 保护）更新 message parts
+              // UIMessagePart 包含 input: unknown，不兼容 Json 类型，需用类型断言
               await supabase
                 .from("cct_message")
-                .update({ parts: finishedMsg.parts })
+                .update({ parts: finishedMsg.parts as unknown as Json })
                 .eq("id", finishedMsg.id);
             } else {
               await saveMessages([

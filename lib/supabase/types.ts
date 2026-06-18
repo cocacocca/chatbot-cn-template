@@ -1,4 +1,15 @@
-// 此文件由 supabase gen types 生成，首次运行后替换
+// 此文件由 supabase gen types 生成，请勿手动修改
+// 生成命令：docker exec supabase-db psql -U postgres -d postgres -c "..." (或 supabase gen types)
+// 最后更新：2026-06-17
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -39,30 +50,46 @@ export type Database = {
         Update: {
           title?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "cct_chat_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       cct_message: {
         Row: {
           id: string;
           chat_id: string;
           role: string;
-          parts: unknown;
-          attachments: unknown;
+          parts: Json | null;
+          attachments: Json | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           chat_id: string;
           role: string;
-          parts?: unknown;
-          attachments?: unknown;
+          parts?: Json | null;
+          attachments?: Json | null;
           created_at?: string;
         };
         Update: {
-          parts?: unknown;
-          attachments?: unknown;
+          parts?: Json | null;
+          attachments?: Json | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "cct_message_chat_id_fkey";
+            columns: ["chat_id"];
+            isOneToOne: false;
+            referencedRelation: "cct_chat";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       cct_document: {
         Row: {
@@ -86,7 +113,15 @@ export type Database = {
           kind?: "text" | "code" | "image" | "sheet";
           title?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "cct_document_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       cct_suggestion: {
         Row: {
@@ -113,7 +148,22 @@ export type Database = {
           suggested_text?: string | null;
           is_resolved?: boolean;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "cct_suggestion_document_id_document_created_at_fkey";
+            columns: ["document_id", "document_created_at"];
+            isOneToOne: false;
+            referencedRelation: "cct_document";
+            referencedColumns: ["id", "created_at"];
+          },
+          {
+            foreignKeyName: "cct_suggestion_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       cct_model_config: {
         Row: {
@@ -121,7 +171,7 @@ export type Database = {
           provider: string;
           base_url: string | null;
           api_key: string | null;
-          capabilities: unknown;
+          capabilities: Json | null;
           reasoning_effort: string | null;
           is_default: boolean;
           is_title_model: boolean;
@@ -134,7 +184,7 @@ export type Database = {
           provider: string;
           base_url?: string | null;
           api_key?: string | null;
-          capabilities?: unknown;
+          capabilities?: Json | null;
           reasoning_effort?: string | null;
           is_default?: boolean;
           is_title_model?: boolean;
@@ -144,24 +194,32 @@ export type Database = {
           provider?: string;
           base_url?: string | null;
           api_key?: string | null;
-          capabilities?: unknown;
+          capabilities?: Json | null;
           reasoning_effort?: string | null;
           is_default?: boolean;
           is_title_model?: boolean;
           updated_at?: string;
           user_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "cct_model_config_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {
       cct_document_latest: {
         Row: {
-          id: string;
-          created_at: string;
-          user_id: string;
+          id: string | null;
+          created_at: string | null;
+          user_id: string | null;
           content: string | null;
-          kind: "text" | "code" | "image" | "sheet";
+          kind: "text" | "code" | "image" | "sheet" | null;
           title: string | null;
         };
         Relationships: [];

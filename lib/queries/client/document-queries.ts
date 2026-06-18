@@ -42,11 +42,12 @@ export async function getLatestDocument(
   }
 
   return {
-    id: data.id,
-    createdAt: data.created_at,
-    userId: data.user_id,
+    id: data.id ?? "",
+    createdAt: data.created_at ?? "",
+    userId: data.user_id ?? "",
     content: data.content ?? "",
-    kind: data.kind,
+    // view 字段允许 null，用默认值兜底并断言为联合类型
+    kind: (data.kind ?? "text") as "text" | "code" | "image" | "sheet",
     title: data.title ?? "",
   };
 }
