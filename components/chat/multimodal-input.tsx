@@ -1,6 +1,7 @@
 "use client";
 
 import type { UseChatHelpers } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
 import equal from "fast-deep-equal";
 import { ArrowUpIcon, BrainIcon, EyeIcon, WrenchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,6 @@ import {
   ModelSelectorName,
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
-import { useActiveChat } from "@/hooks/use-active-chat";
 import { useModels } from "@/hooks/use-models";
 import type { ChatModel } from "@/lib/ai/model-types";
 import { deleteAllChats, deleteChat } from "@/lib/queries/client/chat-queries";
@@ -43,7 +43,6 @@ import {
 } from "../ai-elements/prompt-input";
 import { Button } from "../ui/button";
 import { PaperclipIcon, StopIcon } from "./icons";
-import { submitEditedMessage } from "./message-editor";
 import { PreviewAttachment } from "./preview-attachment";
 import {
   type SlashCommand,
@@ -59,33 +58,42 @@ function setCookie(name: string, value: string) {
 }
 
 function PureMultimodalInput({
+  chatId,
+  input,
+  setInput,
+  status,
+  stop,
   attachments,
   setAttachments,
+  messages,
+  setMessages,
+  sendMessage,
+  className,
+  selectedModelId,
+  onModelChange,
   editingMessage,
   onCancelEdit,
-  className,
+  isLoading,
 }: {
+  chatId: string;
+  input: string;
+  setInput: Dispatch<SetStateAction<string>>;
+  status: UseChatHelpers<ChatMessage>["status"];
+  stop: () => void;
   attachments: Attachment[];
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+  messages: UIMessage[];
+  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+  sendMessage:
+    | UseChatHelpers<ChatMessage>["sendMessage"]
+    | (() => Promise<void>);
+  className?: string;
+  selectedModelId: string;
+  onModelChange?: (modelId: string) => void;
   editingMessage?: ChatMessage | null;
   onCancelEdit?: () => void;
-  className?: string;
+  isLoading?: boolean;
 }) {
-  const {
-    chatId,
-    input,
-    setInput,
-    status,
-    stop,
-    messages,
-    setMessages,
-    sendMessage,
-    regenerate,
-    currentModelId: selectedModelId,
-    setCurrentModelId: onModelChange,
-    isLoading,
-  } = useActiveChat();
-
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -198,20 +206,6 @@ function PureMultimodalInput({
   const [slashIndex, setSlashIndex] = useState(0);
 
   const submitForm = useCallback(() => {
-    // 编辑消息模式：提交编辑后清空输入
-    if (editingMessage) {
-      const msg = editingMessage;
-      onCancelEdit?.();
-      submitEditedMessage({
-        message: msg,
-        text: input,
-        setMessages,
-        regenerate,
-      }).then(() => setInput(""));
-      return;
-    }
-
-    // 正常发送模式
     window.history.pushState(
       {},
       "",
@@ -242,18 +236,14 @@ function PureMultimodalInput({
       textareaRef.current?.focus();
     }
   }, [
-    editingMessage,
-    onCancelEdit,
     input,
-    setMessages,
-    regenerate,
     setInput,
-    chatId,
     attachments,
     sendMessage,
     setAttachments,
     setLocalStorageInput,
     width,
+    chatId,
   ]);
 
   const uploadFile = useCallback(async (file: File) => {
@@ -549,10 +539,25 @@ function PureMultimodalInput({
 export const MultimodalInput = memo(
   PureMultimodalInput,
   (prevProps, nextProps) => {
+    if (prevProps.input !== nextProps.input) {
+      return false;
+    }
+    if (prevProps.status !== nextProps.status) {
+      return false;
+    }
     if (!equal(prevProps.attachments, nextProps.attachments)) {
       return false;
     }
+    if (prevProps.selectedModelId !== nextProps.selectedModelId) {
+      return false;
+    }
     if (prevProps.editingMessage !== nextProps.editingMessage) {
+      return false;
+    }
+    if (prevProps.isLoading !== nextProps.isLoading) {
+      return false;
+    }
+    if (prevProps.messages.length !== nextProps.messages.length) {
       return false;
     }
 

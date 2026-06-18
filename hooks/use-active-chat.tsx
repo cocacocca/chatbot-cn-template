@@ -3,6 +3,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   type Dispatch,
@@ -14,18 +15,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSWRConfig } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { toast } from "@/components/chat/toast";
 import { ChatbotError } from "@/lib/errors";
+import { getMessagesByChatId } from "@/lib/queries/client/chat-queries";
 import type { ChatMessage } from "@/lib/types";
 import { fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
-import { useChatIdFromUrl } from "./use-chat-id-from-url";
-import { useChatMessages } from "./use-chat-messages";
-import { useChatModel } from "./use-chat-model";
-import { useQueryAutoSend } from "./use-query-auto-send";
 
 type ActiveChatContextValue = {
   chatId: string;
@@ -45,22 +43,29 @@ type ActiveChatContextValue = {
 
 const ActiveChatContext = createContext<ActiveChatContextValue | null>(null);
 
+function extractChatId(pathname: string): string | null {
+  const match = pathname.match(/\/chat\/([^/]+)/);
+  return match ? match[1] : null;
+}
+
 export function ActiveChatProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const { setDataStream } = useDataStream();
   const { mutate } = useSWRConfig();
 
-  // 从 URL 解析 chatId（新聊天时生成 UUID）
-  const { chatId, isNewChat } = useChatIdFromUrl();
+  const chatIdFromUrl = extractChatId(pathname);
+  const isNewChat = !chatIdFromUrl;
+  const newChatIdRef = useRef(generateUUID());
+  const prevPathnameRef = useRef(pathname);
 
-  // SWR 拉取已有聊天的消息
-  const { messages: loadedMessages, isLoading } = useChatMessages(
-    isNewChat ? null : chatId
-  );
+  if (isNewChat && prevPathnameRef.current !== pathname) {
+    newChatIdRef.current = generateUUID();
+  }
+  prevPathnameRef.current = pathname;
 
-  // 管理 chat-model cookie
-  const { currentModelId, setCurrentModelId } = useChatModel();
+  const chatId = chatIdFromUrl ?? newChatIdRef.current;
 
-  // 用 ref 跟踪当前模型 id，供 transport 闭包读取最新值
+  const [currentModelId, setCurrentModelId] = useState<string>("");
   const currentModelIdRef = useRef(currentModelId);
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -68,9 +73,20 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const [input, setInput] = useState("");
 
+  const { data: chatData, isLoading } = useSWR(
+    isNewChat ? null : ["chat-data", chatId],
+    async () => {
+      const messages = await getMessagesByChatId(chatId);
+      return {
+        messages: messages as unknown as ChatMessage[],
+      };
+    },
+    { revalidateOnFocus: false }
+  );
+
   const initialMessages: ChatMessage[] = isNewChat
     ? []
-    : (loadedMessages ?? []);
+    : (chatData?.messages ?? []);
 
   const {
     messages,
@@ -142,19 +158,22 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // 同步已加载的消息到 useChat（避免重复同步）
   const loadedChatIds = useRef(new Set<string>());
+
+  if (isNewChat && !loadedChatIds.current.has(newChatIdRef.current)) {
+    loadedChatIds.current.add(newChatIdRef.current);
+  }
+
   useEffect(() => {
     if (loadedChatIds.current.has(chatId)) {
       return;
     }
-    if (loadedMessages) {
+    if (chatData?.messages) {
       loadedChatIds.current.add(chatId);
-      setMessages(loadedMessages);
+      setMessages(chatData.messages);
     }
-  }, [chatId, loadedMessages, setMessages]);
+  }, [chatId, chatData?.messages, setMessages]);
 
-  // 切换到新聊天时清空消息
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
     if (prevChatIdRef.current !== chatId) {
@@ -165,8 +184,35 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [chatId, isNewChat, setMessages]);
 
-  // 处理 URL ?query= 参数自动发送
-  useQueryAutoSend(chatId, sendMessage, status);
+  useEffect(() => {
+    if (chatData && !isNewChat) {
+      const cookieModel = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("chat-model="))
+        ?.split("=")[1];
+      if (cookieModel) {
+        setCurrentModelId(decodeURIComponent(cookieModel));
+      }
+    }
+  }, [chatData, isNewChat]);
+
+  const hasAppendedQueryRef = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get("query");
+    if (query && !hasAppendedQueryRef.current) {
+      hasAppendedQueryRef.current = true;
+      window.history.replaceState(
+        {},
+        "",
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`
+      );
+      sendMessage({
+        role: "user" as const,
+        parts: [{ type: "text", text: query }],
+      });
+    }
+  }, [sendMessage, chatId]);
 
   const value = useMemo<ActiveChatContextValue>(
     () => ({
@@ -197,7 +243,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       isNewChat,
       isLoading,
       currentModelId,
-      setCurrentModelId,
     ]
   );
 
