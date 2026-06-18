@@ -9,7 +9,6 @@ max_rows = 1000
 
 [db]
 port = 54322
-shadow_database_name = "postgres_shadow"
 
 [auth]
 enabled = true
