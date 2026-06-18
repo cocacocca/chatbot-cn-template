@@ -54,9 +54,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Start local Supabase
-        run: |
-          npx supabase start
-          npx supabase db push
+        run: npx supabase start
 
       - name: Set test environment variables
         run: |
