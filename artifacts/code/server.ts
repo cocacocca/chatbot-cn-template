@@ -1,8 +1,14 @@
+/** @file 代码 Artifact 服务端处理器，负责基于 LLM 流式生成与更新代码内容 */
 import { streamText } from "ai";
 import { codePrompt, updateDocumentPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocumentHandler } from "@/lib/artifacts/server";
 
+/**
+ * 去除代码外层的 markdown 围栏（```）。
+ * @param code - 可能包含围栏的原始代码字符串
+ * @returns 去除围栏并 trim 后的纯代码字符串
+ */
 function stripFences(code: string): string {
   return code
     .replace(/^```[\w]*\n?/, "")
@@ -12,6 +18,7 @@ function stripFences(code: string): string {
 
 export const codeDocumentHandler = createDocumentHandler<"code">({
   kind: "code",
+  // 创建文档：基于标题流式生成代码
   onCreateDocument: async ({ title, dataStream, modelId, session }) => {
     let draftContent = "";
 
@@ -21,6 +28,7 @@ export const codeDocumentHandler = createDocumentHandler<"code">({
       prompt: title,
     });
 
+    // 消费流：将文本增量写入 dataStream，并实时去除围栏
     for await (const delta of fullStream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
@@ -34,6 +42,7 @@ export const codeDocumentHandler = createDocumentHandler<"code">({
 
     return stripFences(draftContent);
   },
+  // 更新文档：基于描述与现有内容流式生成新代码
   onUpdateDocument: async ({
     document,
     description,

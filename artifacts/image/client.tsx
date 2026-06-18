@@ -1,3 +1,4 @@
+/** @file 图像 Artifact 客户端定义，负责图像编辑、版本切换与剪贴板复制 */
 import { toast } from "sonner";
 import { Artifact } from "@/components/chat/create-artifact";
 import { CopyIcon, RedoIcon, UndoIcon } from "@/components/chat/icons";
@@ -6,6 +7,7 @@ import { ImageEditor } from "@/components/chat/image-editor";
 export const imageArtifact = new Artifact({
   kind: "image",
   description: "Useful for image generation",
+  // 处理流式数据：图像增量到达时立即展示并标记为 streaming
   onStreamPart: ({ streamPart, setArtifact }) => {
     if (streamPart.type === "data-imageDelta") {
       setArtifact((draftArtifact) => ({
@@ -24,6 +26,7 @@ export const imageArtifact = new Artifact({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("prev");
       },
+      // 当前已是第一版时禁用回退
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
           return true;
@@ -38,6 +41,7 @@ export const imageArtifact = new Artifact({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("next");
       },
+      // 当前已是最新版时禁用前进
       isDisabled: ({ isCurrentVersion }) => {
         if (isCurrentVersion) {
           return true;
@@ -49,6 +53,7 @@ export const imageArtifact = new Artifact({
     {
       icon: <CopyIcon size={18} />,
       description: "Copy image to clipboard",
+      // 将 base64 图像绘制到 canvas，再以 PNG Blob 写入剪贴板
       onClick: ({ content }) => {
         const img = new Image();
         img.src = `data:image/png;base64,${content}`;
