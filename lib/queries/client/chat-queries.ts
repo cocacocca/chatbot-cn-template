@@ -71,7 +71,10 @@ export async function deleteChat(chatId: string): Promise<void> {
 // 删除用户所有 chat
 export async function deleteAllChats(): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase.from("cct_chat").delete().neq("id", "");
+  const { error } = await supabase
+    .from("cct_chat")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
   if (error) {
     throw error;
   }
