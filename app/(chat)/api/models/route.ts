@@ -1,3 +1,4 @@
+/** @file 模型配置 API 路由：提供模型列表查询（GET）、创建（POST）、更新（PUT）、删除（DELETE） */
 import { getModelCapabilitiesMap } from "@/lib/ai/models";
 import {
   createModelConfig,
@@ -7,6 +8,11 @@ import {
 } from "@/lib/ai/models-db";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * 获取当前用户的所有模型配置与能力映射
+ * 数据库为空时，从环境变量构造 fallback 模型（与 getChatModels 逻辑一致）。
+ * @returns JSON { models, capabilities }
+ */
 export async function GET() {
   const supabase = await createClient();
   const {
@@ -49,6 +55,12 @@ export async function GET() {
   });
 }
 
+/**
+ * 创建新的模型配置
+ * 必填字段：id、name、provider；其余字段缺省时使用默认值。
+ * @param request 包含模型配置字段的请求体
+ * @returns 201 成功创建 / 400 参数缺失 / 401 未授权 / 500 服务器错误
+ */
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -104,6 +116,12 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * 更新已有模型配置
+ * 通过请求体中的 id 定位记录，其余字段为待更新内容。
+ * @param request 包含 id 与待更新字段的请求体
+ * @returns 200 成功更新 / 400 缺少 id / 401 未授权 / 500 服务器错误
+ */
 export async function PUT(request: Request) {
   const supabase = await createClient();
   const {
@@ -132,6 +150,11 @@ export async function PUT(request: Request) {
   }
 }
 
+/**
+ * 删除指定模型配置
+ * @param request 通过 query 参数 id 指定要删除的模型 ID
+ * @returns 200 成功删除 / 400 缺少 id / 401 未授权 / 500 服务器错误
+ */
 export async function DELETE(request: Request) {
   const supabase = await createClient();
   const {

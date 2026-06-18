@@ -1,9 +1,14 @@
+/** @file 登录页面，展示标题、登录表单以及跳转注册的链接 */
 "use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { AuthForm } from "@/components/chat/auth-form";
 
+/**
+ * 登录页面组件
+ * 渲染「登录」标题、说明文案、登录表单，以及底部跳转到注册页面的链接。
+ */
 export default function Page() {
   return (
     <>

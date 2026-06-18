@@ -1,3 +1,4 @@
+/** @file 聊天 API 路由：处理消息流式生成（POST）与会话删除（DELETE） */
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -30,8 +31,15 @@ import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
+/** 流式响应最大执行时长（秒），对应平台函数超时配置 */
 export const maxDuration = 60;
 
+/**
+ * 聊天消息生成接口
+ * 流程：鉴权 → 模型权限校验 → 速率限制 → 加载/初始化会话 →
+ *       构造 UI 消息 → 流式生成（含工具调用）→ 持久化结果
+ * @param request 包含会话 ID、消息、所选模型等信息的请求
+ */
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
 
@@ -56,16 +64,19 @@ export async function POST(request: Request) {
 
     const session = { user: { id: user.id } };
 
+    // 校验所选模型是否允许该用户使用，否则回退到默认模型
     const allowed = await isAllowedModelId(user.id, selectedChatModel);
     const defaultId = await getDefaultModelId(user.id);
     const chatModel = allowed ? selectedChatModel : defaultId;
 
+    // 速率限制：每小时消息数上限
     const messageCount = await getMessageCountByUserId();
 
     if (messageCount > entitlements.maxMessagesPerHour) {
       return new ChatbotError("rate_limit:chat").toResponse();
     }
 
+    // 工具审批流：请求体携带 messages 数组时为 true
     const isToolApprovalFlow = Boolean(messages);
 
     // 使用 server client（受 RLS 保护），chat/messages 查询自动按用户隔离
@@ -82,6 +93,7 @@ export async function POST(request: Request) {
     let titlePromise: Promise<string> | null = null;
 
     if (chat) {
+      // 会话已存在：校验所有权后加载历史消息
       if (chat.user_id !== user.id) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
@@ -99,6 +111,7 @@ export async function POST(request: Request) {
         createdAt: new Date(m.created_at as string),
       }));
     } else if (message?.role === "user") {
+      // 新会话：保存 chat 记录并异步生成标题
       await saveChat({
         id,
         userId: user.id,
@@ -110,6 +123,7 @@ export async function POST(request: Request) {
     let uiMessages: ChatMessage[];
 
     if (isToolApprovalFlow && messages) {
+      // 工具审批流：合并数据库消息与前端传来的审批状态
       const dbMessages = convertToUIMessages(messagesFromDb);
       const approvalStates = new Map(
         messages.flatMap(
@@ -139,6 +153,7 @@ export async function POST(request: Request) {
         }),
       })) as ChatMessage[];
     } else {
+      // 普通对话流：数据库历史消息 + 当前用户消息
       uiMessages = [
         ...convertToUIMessages(messagesFromDb),
         message as ChatMessage,
@@ -152,6 +167,7 @@ export async function POST(request: Request) {
       country: undefined,
     };
 
+    // 先持久化用户消息，再开始流式生成
     if (message?.role === "user") {
       await saveMessages([
         {
@@ -165,6 +181,7 @@ export async function POST(request: Request) {
       ]);
     }
 
+    // 加载模型配置与能力（reasoning/tools），决定是否启用工具调用
     const allModels = await getChatModels(user.id);
     const modelConfig = allModels.find((m) => m.id === chatModel);
     const capabilitiesMap = await getModelCapabilitiesMap(user.id);
@@ -182,6 +199,7 @@ export async function POST(request: Request) {
           system: systemPrompt({ requestHints, supportsTools }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
+          // 推理模型且不支持工具时，禁用所有工具
           experimental_activeTools:
             isReasoningModel && !supportsTools
               ? []
@@ -226,6 +244,7 @@ export async function POST(request: Request) {
           result.toUIMessageStream({ sendReasoning: isReasoningModel })
         );
 
+        // 异步生成标题：成功后通过流推送给前端，并更新数据库
         if (titlePromise) {
           try {
             const title = await titlePromise;
@@ -243,6 +262,7 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages: finishedMessages }) => {
+        // 流结束：根据流程类型持久化 assistant 消息
         if (isToolApprovalFlow) {
           for (const finishedMsg of finishedMessages) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
@@ -295,6 +315,11 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * 删除指定会话接口
+ * 鉴权后校验会话所有权，再删除 cct_chat 记录（消息通过级联或外键约束清理）。
+ * @param request 通过 query 参数 id 指定要删除的会话 ID
+ */
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");

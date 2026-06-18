@@ -1,13 +1,17 @@
+/* ===== 全局样式入口：引入 Tailwind、KaTeX、streamdown 源，并注册插件与主题变量 ===== */
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
 
 @source "../node_modules/streamdown/dist/index.js";
 
+/* 暗色变体：基于 .dark 类名匹配 */
 @custom-variant dark (&:is(.dark, .dark *));
 
+/* Tailwind 插件：动画工具类与排版排版样式 */
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
 
+/* ===== 主题变量映射：将 CSS 变量映射为 Tailwind 可识别的 token ===== */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -46,6 +50,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ===== 亮色主题变量定义（:root） ===== */
 :root {
   --radius: 0.625rem;
   --background: oklch(0.985 0 0);
@@ -80,6 +85,7 @@
   --sidebar-border: oklch(0.88 0 0);
   --sidebar-ring: oklch(0.5 0 0);
 
+  /* 阴影 token：卡片、浮层、输入框、内阴影、光晕 */
   --shadow-card: 0 1px 3px oklch(0 0 0 / 0.05), 0 1px 1px oklch(0 0 0 / 0.03);
   --shadow-float:
     0 8px 24px -6px oklch(0 0 0 / 0.1), 0 2px 8px -2px oklch(0 0 0 / 0.04);
@@ -89,11 +95,13 @@
   --shadow-inset: inset 0 1px 1px oklch(0 0 0 / 0.03);
   --shadow-glow: 0 0 20px oklch(0 0 0 / 0.08);
 
+  /* 缓动曲线 token：弹簧、回弹、平滑 */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ===== 暗色主题变量定义（.dark） ===== */
 .dark {
   --background: oklch(0.195 0 0);
   --foreground: oklch(0.94 0 0);
@@ -127,6 +135,7 @@
   --sidebar-border: oklch(0.25 0 0);
   --sidebar-ring: oklch(0.45 0 0);
 
+  /* 暗色阴影：使用更深的黑色与轻微的高光内描边 */
   --shadow-card:
     inset 0 1px 0 oklch(1 0 0 / 0.04), 0 1px 2px oklch(0 0 0 / 0.2),
     0 0.5px 1px oklch(0 0 0 / 0.15);
@@ -140,6 +149,7 @@
     inset 0 1px 0 oklch(1 0 0 / 0.04);
 }
 
+/* ===== 基础层：全局元素样式重置 ===== */
 @layer base {
   * {
     @apply border-border ring-0;
@@ -153,6 +163,7 @@
   }
 }
 
+/* 基础层：统一所有伪元素的边框颜色 */
 @layer base {
   *,
   ::after,
@@ -163,6 +174,7 @@
   }
 }
 
+/* 基础层：文档级排版与溢出控制 */
 @layer base {
   body {
     overflow-x: hidden;
@@ -188,6 +200,7 @@
   }
 }
 
+/* 表单元素聚焦时去除默认外边框（由 ring 系统接管） */
 button:focus-visible,
 select:focus-visible,
 [role="button"]:focus-visible,
@@ -196,22 +209,28 @@ textarea:focus-visible {
   outline: none;
 }
 
+/* ===== 自定义工具类 ===== */
+/* 文本两端平衡换行 */
 @utility text-balance {
   text-wrap: balance;
 }
 
+/* iOS 惯性滚动 */
 @utility -webkit-overflow-scrolling-touch {
   -webkit-overflow-scrolling: touch;
 }
 
+/* 仅允许垂直平移（用于纵向滚动容器） */
 @utility touch-pan-y {
   touch-action: pan-y;
 }
 
+/* 滚动链隔离：内部滚动不传播到父级 */
 @utility overscroll-behavior-contain {
   overscroll-behavior: contain;
 }
 
+/* 隐藏滚动条但保留滚动能力 */
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -220,6 +239,7 @@ textarea:focus-visible {
   }
 }
 
+/* 工具层：RGB 背景渐变变量（兼容旧版 Next.js 背景渐变方案） */
 @layer utilities {
   :root {
     --foreground-rgb: 0, 0, 0;
@@ -236,6 +256,7 @@ textarea:focus-visible {
   }
 }
 
+/* 骨架屏样式：屏蔽交互并将文本类元素替换为脉冲占位 */
 .skeleton {
   * {
     pointer-events: none !important;
@@ -255,6 +276,8 @@ textarea:focus-visible {
   }
 }
 
+/* ===== 关键帧定义 ===== */
+/* 上滑淡入 */
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -266,6 +289,7 @@ textarea:focus-visible {
   }
 }
 
+/* 淡入 */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -275,6 +299,7 @@ textarea:focus-visible {
   }
 }
 
+/* 微光闪烁（加载占位） */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -284,6 +309,7 @@ textarea:focus-visible {
   }
 }
 
+/* 点状脉冲（思考指示器） */
 @keyframes dot-pulse {
   0%,
   60%,
@@ -297,6 +323,7 @@ textarea:focus-visible {
   }
 }
 
+/* 消息进入动画 */
 @keyframes message-in {
   from {
     opacity: 0;
@@ -308,6 +335,7 @@ textarea:focus-visible {
   }
 }
 
+/* 思考点动画（与 dot-pulse 一致，用于不同语义场景） */
 @keyframes thinking-dot {
   0%,
   60%,
@@ -321,6 +349,7 @@ textarea:focus-visible {
   }
 }
 
+/* 输入框光晕脉冲 */
 @keyframes glow-pulse {
   0%,
   100% {
@@ -331,6 +360,7 @@ textarea:focus-visible {
   }
 }
 
+/* 卡片悬停时的轻微上浮 */
 @keyframes subtle-lift {
   from {
     transform: translateY(0);
@@ -342,6 +372,7 @@ textarea:focus-visible {
   }
 }
 
+/* ===== 动画工具类 ===== */
 @utility fade-up {
   animation: fade-up 0.25s var(--ease-spring) both;
 }
@@ -377,10 +408,13 @@ textarea:focus-visible {
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
+/* ===== 第三方组件样式覆写 ===== */
+/* ProseMirror 编辑器：去除默认外边框 */
 .ProseMirror {
   outline: none;
 }
 
+/* CodeMirror 编辑器：透明背景与等宽字体 */
 .cm-editor {
   @apply bg-transparent! outline-hidden! text-[13px]! leading-[1.6]!;
   font-family:
@@ -400,14 +434,15 @@ textarea:focus-visible {
   @apply overflow-auto!;
 }
 
+/* CodeMirror 选区颜色（亮色） */
 .ͼo.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
 .ͼo.cm-selectionBackground,
 .ͼo.cm-content::selection {
   background: oklch(0.55 0.12 250 / 0.15) !important;
 }
 
-.dark
-  .ͼo.cm-focused
+/* CodeMirror 选区颜色（暗色） */
+.dark .ͼo.cm-focused
   > .cm-scroller
   > .cm-selectionLayer
   .cm-selectionBackground,
@@ -437,23 +472,27 @@ textarea:focus-visible {
   @apply min-w-3;
 }
 
+/* CodeMirror 光标颜色 */
 .cm-cursor {
   border-left-color: oklch(0.55 0.12 250) !important;
   border-left-width: 2px !important;
 }
 
+/* 匹配括号高亮 */
 .cm-matchingBracket {
   background: oklch(0.55 0.12 250 / 0.12) !important;
   outline: 1px solid oklch(0.55 0.12 250 / 0.3);
   border-radius: 2px;
 }
 
+/* 建议项高亮（@提及等） */
 .suggestion-highlight {
   @apply cursor-pointer rounded-sm bg-blue-200 transition-colors hover:bg-blue-300 dark:bg-blue-500/40 dark:text-blue-50 dark:hover:bg-blue-400/50;
   user-select: none;
   -webkit-user-select: none;
 }
 
+/* ===== 滚动条样式（细滚动条） ===== */
 @layer base {
   * {
     scrollbar-width: thin;
@@ -495,6 +534,7 @@ textarea:focus-visible {
   }
 }
 
+/* Artifact 容器：创建新的层叠上下文以隔离 z-index */
 [data-testid="artifact"] {
   isolation: isolate;
 }

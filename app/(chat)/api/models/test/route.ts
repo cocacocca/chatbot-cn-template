@@ -1,5 +1,12 @@
+/** @file 模型连接测试 API：验证用户提供的 Base URL 与 API Key 是否可访问 */
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * 测试模型 API 连接
+ * 调用 `${baseUrl}/models` 端点验证 API Key 有效性，并返回可用模型数量。
+ * @param request 包含 baseUrl 与 apiKey 的请求体
+ * @returns JSON { success, message }，message 含成功/失败描述
+ */
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -19,6 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // 拼接 models 列表端点，兼容 baseUrl 末尾是否带 /
     const url = baseUrl.endsWith("/")
       ? `${baseUrl}models`
       : `${baseUrl}/models`;
@@ -39,6 +47,7 @@ export async function POST(request: Request) {
       });
     }
 
+    // 请求失败：返回状态码与响应文本片段
     const text = await res.text().catch(() => "");
     return Response.json({
       success: false,

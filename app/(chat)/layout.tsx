@@ -1,3 +1,4 @@
+/** @file 聊天路由组（chat）的布局组件：加载 Pyodide、预取会话历史、组装侧边栏与聊天外壳 */
 import { cookies } from "next/headers";
 import Script from "next/script";
 import { Suspense } from "react";
@@ -9,8 +10,13 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { ChatShellGate } from "./chat-shell-gate";
 
+/** 预取会话历史的首页条数，用于 SWR fallback，避免客户端 loading 闪烁 */
 const PREFETCH_PAGE_SIZE = 50;
 
+/**
+ * 聊天布局组件
+ * 加载 Pyodide 脚本、包裹 DataStreamProvider，并通过 Suspense 覆盖异步内容。
+ */
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
@@ -28,6 +34,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 }
 
 // 所有 async 操作集中在此，被 <Suspense> 覆盖，满足 Next.js 16 Cache Components 要求
+/**
+ * 聊天布局的异步内容部分
+ * 预取首页会话历史作为 SWR fallback，读取侧边栏折叠状态，并组装完整布局。
+ */
 async function ChatLayoutContent({ children }: { children: React.ReactNode }) {
   // 预取首页 chat history 作为 SWR fallback，避免客户端 loading 闪烁
   const supabase = await createClient();
@@ -50,6 +60,7 @@ async function ChatLayoutContent({ children }: { children: React.ReactNode }) {
     initialChats = data ?? [];
   }
 
+  // 构造 SWR fallback：仅当有用户且有预取数据时启用
   const fallback =
     user && initialChats.length > 0
       ? {
@@ -64,6 +75,7 @@ async function ChatLayoutContent({ children }: { children: React.ReactNode }) {
         }
       : undefined;
 
+  // 读取侧边栏折叠状态 cookie（"true" 表示展开）
   const cookieStore = await cookies();
   const isCollapsed = cookieStore.get("sidebar_state")?.value !== "true";
 

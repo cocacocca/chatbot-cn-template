@@ -1,3 +1,4 @@
+/** @file 聊天相关的服务端 actions：保存模型 cookie、生成对话标题、删除尾部消息 */
 "use server";
 
 import { generateText, type UIMessage } from "ai";
@@ -8,11 +9,22 @@ import { getTitleModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 import { getTextFromMessage } from "@/lib/utils";
 
+/**
+ * 将用户选择的聊天模型 ID 持久化到 cookie 中
+ * @param model 模型 ID
+ */
 export async function saveChatModelAsCookie(model: string) {
   const cookieStore = await cookies();
   cookieStore.set("chat-model", model);
 }
 
+/**
+ * 根据用户的首条消息自动生成对话标题
+ * 调用标题模型生成文本，并清理首尾的 #、*、" 等符号与空白。
+ * @param message 用户的 UIMessage
+ * @param userId 用户 ID
+ * @returns 清理后的标题文本
+ */
 export async function generateTitleFromUserMessage({
   message,
   userId,
@@ -31,6 +43,12 @@ export async function generateTitleFromUserMessage({
     .trim();
 }
 
+/**
+ * 删除指定消息之后的所有尾部消息
+ * 用于用户编辑某条消息后，丢弃其后的所有回复并重新生成。
+ * 通过 Supabase server client（受 RLS 保护）校验消息归属与所属 chat 的所有权。
+ * @param id 起始消息 ID
+ */
 export async function deleteTrailingMessages({ id }: { id: string }) {
   const supabase = await createClient();
   const {
