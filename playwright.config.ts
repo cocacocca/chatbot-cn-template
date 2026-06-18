@@ -24,6 +24,8 @@ export default defineConfig({
   workers: process.env.CI ? 2 : 2,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
+  /* Create a test user and log in once before all tests, saving the session */
+  globalSetup: "./tests/e2e/global-setup",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -31,6 +33,13 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "retain-on-failure",
+
+    /* Bypass the system HTTP proxy so the browser can reach the local dev
+       server directly. Without this, requests to localhost are routed through
+       the proxy and time out. */
+    launchOptions: {
+      args: ["--no-proxy-server"],
+    },
   },
 
   /* Configure global timeout for each test */
@@ -42,10 +51,20 @@ export default defineConfig({
   /* Configure projects */
   projects: [
     {
-      name: "e2e",
-      testMatch: /e2e\/.*.test.ts/,
+      name: "auth",
+      testMatch: /e2e\/auth\.test\.ts/,
       use: {
         ...devices["Desktop Chrome"],
+        // Auth pages must be visited without an active session
+      },
+    },
+    {
+      name: "e2e",
+      testMatch: /e2e\/(?!auth\.test\.ts).*\.test\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        /* Reuse the session saved by globalSetup for all authenticated tests */
+        storageState: "tests/e2e/.auth/user.json",
       },
     },
 
