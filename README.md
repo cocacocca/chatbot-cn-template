@@ -1,8 +1,3 @@
-<a href="https://github.com/cocacocca/chatbot-cn-template/wiki">
-  <img alt="Chatbot" src="app/(chat)/opengraph-image.png">
-  <h1 align="center">Chatbot 中文模板</h1>
-</a>
-
 <p align="center">
   基于 <a href="https://github.com/vercel/ai-chatbot">Vercel AI Chatbot Template</a> 二次开发的中文 AI 聊天机器人模板，使用 Supabase 完全替代原有数据层，开箱即用、可独立部署。
 </p>
