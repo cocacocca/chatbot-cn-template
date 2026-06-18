@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { ChatShell } from "@/components/chat/shell";
-import { ActiveChatProvider } from "@/hooks/use-active-chat";
+import { ActiveChatProvider } from "@/hooks/chat/use-active-chat";
 
 const enter = {
   initial: { opacity: 0 },

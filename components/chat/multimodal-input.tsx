@@ -29,7 +29,7 @@ import {
   ModelSelectorName,
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
-import { useModels } from "@/hooks/use-models";
+import { useModels } from "@/hooks/data/use-models";
 import type { ChatModel } from "@/lib/ai/model-types";
 import { deleteAllChats, deleteChat } from "@/lib/queries/client/chat-queries";
 import type { Attachment, ChatMessage } from "@/lib/types";

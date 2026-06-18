@@ -1,7 +1,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { memo } from "react";
-import { useMessages } from "@/hooks/use-messages";
+import { useMessages } from "@/hooks/chat/use-messages";
 import type { ChatMessage } from "@/lib/types";
 import type { UIArtifact } from "./artifact";
 import { PreviewMessage, ThinkingMessage } from "./message";

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { useArtifact } from "@/hooks/use-artifact";
+import { useArtifact } from "@/hooks/data/use-artifact";
 import type { ArtifactKind } from "./artifact";
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from "./icons";
 

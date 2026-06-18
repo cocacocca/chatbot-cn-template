@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
-import { initialArtifactData, useArtifact } from "@/hooks/use-artifact";
+import { initialArtifactData, useArtifact } from "@/hooks/data/use-artifact";
 import { artifactDefinitions } from "./artifact";
 import { useDataStream } from "./data-stream-provider";
 import { getChatHistoryPaginationKey } from "./sidebar-history";

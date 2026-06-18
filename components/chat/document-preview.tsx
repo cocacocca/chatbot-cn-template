@@ -9,8 +9,8 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { useArtifact } from "@/hooks/use-artifact";
-import { useDocuments } from "@/hooks/use-documents";
+import { useArtifact } from "@/hooks/data/use-artifact";
+import { useDocuments } from "@/hooks/data/use-documents";
 import type { Document } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { ArtifactKind, UIArtifact } from "./artifact";

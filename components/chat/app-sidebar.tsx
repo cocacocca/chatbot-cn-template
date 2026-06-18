@@ -32,7 +32,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useUser } from "@/hooks/use-user";
+import { useUser } from "@/hooks/auth/use-user";
 import { deleteAllChats } from "@/lib/queries/client/chat-queries";
 import {
   AlertDialog,

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useModels } from "@/hooks/use-models";
+import { useModels } from "@/hooks/data/use-models";
 import { cn } from "@/lib/utils";
 
 type FormState = {

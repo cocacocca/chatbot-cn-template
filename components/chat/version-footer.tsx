@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ChevronLeftIcon, ChevronRightIcon, DiffIcon } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
-import { useArtifact } from "@/hooks/use-artifact";
+import { useArtifact } from "@/hooks/data/use-artifact";
 import { deleteDocument } from "@/lib/queries/client/document-queries";
 import type { Document } from "@/lib/types";
 import { cn, getDocumentTimestampByIndex } from "@/lib/utils";

@@ -23,7 +23,7 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useUser } from "@/hooks/use-user";
+import { useUser } from "@/hooks/auth/use-user";
 import { deleteChat } from "@/lib/queries/client/chat-queries";
 import { createClient } from "@/lib/supabase/client";
 import type { Chat } from "@/lib/types";
