@@ -16,7 +16,8 @@
     "lint:fix": "biome check --write .",
     "check": "ultracite check",
     "check:fix": "ultracite fix",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.68",
