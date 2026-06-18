@@ -1,6 +1,14 @@
+/** @file AI 工具：根据坐标或城市名称查询当前天气，依赖 open-meteo 的地理编码与天气 API。 */
 import { tool } from "ai";
 import { z } from "zod";
 
+/**
+ * 通过城市名称查询其经纬度坐标。
+ * 调用 open-meteo 的 geocoding API，返回首个匹配结果。
+ *
+ * @param city 城市名称
+ * @returns 包含 latitude / longitude 的对象；查询失败或无结果时返回 null
+ */
 async function geocodeCity(
   city: string
 ): Promise<{ latitude: number; longitude: number } | null> {
@@ -15,6 +23,7 @@ async function geocodeCity(
 
     const data = await response.json();
 
+    // 无匹配结果
     if (!data.results || data.results.length === 0) {
       return null;
     }
@@ -25,10 +34,24 @@ async function geocodeCity(
       longitude: result.longitude,
     };
   } catch {
+    // 网络或解析异常时返回 null，由调用方处理
     return null;
   }
 }
 
+/**
+ * getWeather AI 工具。
+ * 工具用途：查询指定位置的当前天气，支持通过城市名称或经纬度坐标定位。
+ *
+ * 输入 schema：
+ * - latitude: 纬度（可选）
+ * - longitude: 经度（可选）
+ * - city: 城市名称（可选，与坐标二选一）
+ *
+ * 返回值：open-meteo forecast API 的原始 JSON 数据；
+ * 若入参同时提供了 city，则返回数据中附加 cityName 字段；
+ * 入参缺失或城市无法定位时返回包含 error 字段的对象。
+ */
 export const getWeather = tool({
   description:
     "Get the current weather at a location. You can provide either coordinates or a city name.",
@@ -44,6 +67,7 @@ export const getWeather = tool({
     let latitude: number;
     let longitude: number;
 
+    // 优先使用城市名称进行地理编码
     if (input.city) {
       const coords = await geocodeCity(input.city);
       if (!coords) {
@@ -54,21 +78,25 @@ export const getWeather = tool({
       latitude = coords.latitude;
       longitude = coords.longitude;
     } else if (input.latitude !== undefined && input.longitude !== undefined) {
+      // 直接使用入参坐标
       latitude = input.latitude;
       longitude = input.longitude;
     } else {
+      // 既未提供城市也未提供完整坐标
       return {
         error:
           "Please provide either a city name or both latitude and longitude coordinates.",
       };
     }
 
+    // 调用 open-meteo forecast API 获取天气数据
     const response = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
     );
 
     const weatherData = await response.json();
 
+    // 入参含 city 时，在返回数据中附加城市名称
     if ("city" in input) {
       weatherData.cityName = input.city;
     }

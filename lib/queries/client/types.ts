@@ -1,6 +1,8 @@
-// 客户端查询层返回类型（camelCase，对应 Supabase 表的 snake_case 字段）
+/** @file 客户端查询层返回类型（camelCase，对应 Supabase 表的 snake_case 字段） */
 
-// 聊天摘要（对应 cct_chat 表）
+/**
+ * 聊天摘要（对应 cct_chat 表）
+ */
 export interface ChatSummary {
   id: string;
   title: string | null;
@@ -8,7 +10,9 @@ export interface ChatSummary {
   userId: string;
 }
 
-// 聊天消息（对应 cct_message 表）
+/**
+ * 聊天消息（对应 cct_message 表）
+ */
 export interface ChatMessage {
   id: string;
   chatId: string;
@@ -18,7 +22,9 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-// 文档（对应 cct_document 表，id 为文档逻辑主键，created_at 区分版本）
+/**
+ * 文档（对应 cct_document 表，id 为文档逻辑主键，created_at 区分版本）
+ */
 export interface ChatDocument {
   id: string;
   createdAt: string;
@@ -28,7 +34,9 @@ export interface ChatDocument {
   title: string;
 }
 
-// 建议（对应 cct_suggestion 表）
+/**
+ * 建议（对应 cct_suggestion 表）
+ */
 export interface Suggestion {
   id: string;
   documentId: string;
@@ -40,7 +48,9 @@ export interface Suggestion {
   createdAt: string;
 }
 
-// 用户资料（对应 cct_user_profile 表，email 来自 auth user）
+/**
+ * 用户资料（对应 cct_user_profile 表，email 来自 auth user）
+ */
 export interface UserProfile {
   id: string;
   email: string;

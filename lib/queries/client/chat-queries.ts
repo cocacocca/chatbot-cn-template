@@ -1,7 +1,13 @@
+/** @file 聊天（chat）与消息（message）的客户端查询：读取历史、获取详情、删除、改标题 */
 import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage, ChatSummary } from "./types";
 
-// 获取用户的历史 chat 列表（按 created_at 降序）
+/**
+ * 获取用户的历史 chat 列表（按 created_at 降序）
+ * @param limit 返回条数上限
+ * @param offset 分页偏移量
+ * @returns 聊天摘要列表
+ */
 export async function getChats(
   limit?: number,
   offset?: number
@@ -34,7 +40,11 @@ export async function getChats(
   }));
 }
 
-// 获取单个 chat
+/**
+ * 获取单个 chat
+ * @param chatId 聊天 ID
+ * @returns 聊天摘要；记录不存在时返回 null
+ */
 export async function getChatById(chatId: string): Promise<ChatSummary | null> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -59,7 +69,10 @@ export async function getChatById(chatId: string): Promise<ChatSummary | null> {
   };
 }
 
-// 删除单个 chat
+/**
+ * 删除单个 chat
+ * @param chatId 聊天 ID
+ */
 export async function deleteChat(chatId: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.from("cct_chat").delete().eq("id", chatId);
@@ -68,7 +81,10 @@ export async function deleteChat(chatId: string): Promise<void> {
   }
 }
 
-// 删除用户所有 chat
+/**
+ * 删除用户所有 chat
+ * 通过 neq 一个零值 UUID 实现全量删除
+ */
 export async function deleteAllChats(): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase
@@ -80,7 +96,11 @@ export async function deleteAllChats(): Promise<void> {
   }
 }
 
-// 获取 chat 的所有消息（按 created_at 升序）
+/**
+ * 获取 chat 的所有消息（按 created_at 升序）
+ * @param chatId 聊天 ID
+ * @returns 消息列表
+ */
 export async function getMessagesByChatId(
   chatId: string
 ): Promise<ChatMessage[]> {
@@ -105,7 +125,11 @@ export async function getMessagesByChatId(
   }));
 }
 
-// 更新 chat 标题
+/**
+ * 更新 chat 标题
+ * @param chatId 聊天 ID
+ * @param title 新标题
+ */
 export async function updateChatTitle(
   chatId: string,
   title: string

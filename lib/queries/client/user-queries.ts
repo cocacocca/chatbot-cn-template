@@ -1,7 +1,11 @@
+/** @file 用户资料（user profile）的客户端查询：读取与更新 */
 import { createClient } from "@/lib/supabase/client";
 import type { UserProfile } from "./types";
 
-// 获取当前用户 profile（email 来自 auth user，其余来自 cct_user_profile）
+/**
+ * 获取当前用户 profile（email 来自 auth user，其余来自 cct_user_profile）
+ * @returns 用户资料；未登录或无 profile 记录时返回 null
+ */
 export async function getProfile(): Promise<UserProfile | null> {
   const supabase = createClient();
   const {
@@ -35,7 +39,11 @@ export async function getProfile(): Promise<UserProfile | null> {
   };
 }
 
-// 更新 profile
+/**
+ * 更新 profile
+ * 仅允许更新 name 与 image 字段，未传入的字段不会被覆盖
+ * @param updates 待更新字段
+ */
 export async function updateProfile(
   updates: Partial<Pick<UserProfile, "name" | "image">>
 ): Promise<void> {

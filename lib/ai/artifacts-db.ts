@@ -1,7 +1,15 @@
+/** @file 文档（Artifact）数据库访问层，提供文档查询、保存、更新及建议（suggestion）持久化能力。 */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Document } from "@/lib/types";
 
+/**
+ * 根据 id 查询单个文档的最新版本。
+ * 通过 `cct_document_latest` 视图读取，该视图返回每个文档 id 的最新一行。
+ *
+ * @param id 文档唯一标识
+ * @returns 文档对象；不存在时返回 null
+ */
 // 查询单个文档的最新版本（通过 cct_document_latest view）
 export async function getDocumentById(id: string): Promise<Document | null> {
   const supabase = createAdminClient();
@@ -12,6 +20,7 @@ export async function getDocumentById(id: string): Promise<Document | null> {
     .single();
 
   if (error) {
+    // PGRST116 表示未命中行，视为文档不存在
     if (error.code === "PGRST116") {
       return null; // Not found
     }
@@ -31,6 +40,15 @@ export async function getDocumentById(id: string): Promise<Document | null> {
   };
 }
 
+/**
+ * 保存一篇新文档（写入 `cct_document` 表，作为新版本）。
+ *
+ * @param params.id 文档唯一标识
+ * @param params.userId 所属用户 id
+ * @param params.content 文档内容
+ * @param params.kind 文档类型（text/code/image/sheet）
+ * @param params.title 文档标题
+ */
 export async function saveDocument({
   id,
   userId,
@@ -57,6 +75,12 @@ export async function saveDocument({
   }
 }
 
+/**
+ * 更新文档内容：先读取最新版本的元信息，再以新内容插入一行（复合主键表通过插入新版本实现更新）。
+ *
+ * @param documentId 文档唯一标识
+ * @param content 新的文档内容
+ */
 export async function updateDocumentContent(
   documentId: string,
   content: string
@@ -89,6 +113,14 @@ export async function updateDocumentContent(
   }
 }
 
+/**
+ * 批量保存文档的写作建议（写入 `cct_suggestion` 表）。
+ *
+ * @param params.documentId 关联文档 id
+ * @param params.documentCreatedAt 关联文档的创建时间（用于复合主键）
+ * @param params.userId 所属用户 id
+ * @param params.suggestions 建议列表，每项包含原文与建议文本
+ */
 export async function saveSuggestions({
   documentId,
   documentCreatedAt,
@@ -101,6 +133,7 @@ export async function saveSuggestions({
   suggestions: Array<{ originalText: string; suggestedText: string }>;
 }) {
   const supabase = createAdminClient();
+  // 将 camelCase 字段映射为数据库 snake_case 列名
   const rows = suggestions.map((s) => ({
     document_id: documentId,
     document_created_at: documentCreatedAt,

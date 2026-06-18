@@ -1,7 +1,13 @@
+/** @file 文档建议（suggestion）的客户端查询：按版本读取、批量保存 */
 import { createClient } from "@/lib/supabase/client";
 import type { Suggestion } from "./types";
 
-// 获取文档的建议（按 created_at 升序）
+/**
+ * 获取文档的建议（按 created_at 升序）
+ * @param documentId 文档 ID
+ * @param documentCreatedAt 文档版本创建时间（与 id 共同定位版本）
+ * @returns 建议列表
+ */
 export async function getSuggestions(
   documentId: string,
   documentCreatedAt: string
@@ -32,7 +38,11 @@ export async function getSuggestions(
   }));
 }
 
-// 批量保存建议
+/**
+ * 批量保存建议
+ * 空数组直接返回，避免无意义写入
+ * @param suggestions 建议字段数组
+ */
 export async function saveSuggestions(
   suggestions: Array<{
     documentId: string;

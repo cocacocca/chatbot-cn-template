@@ -1,10 +1,16 @@
-// 兼容性类型导出：旧代码从 @/lib/db/schema 导入类型，
-// 实际类型定义已迁移至 @/lib/types.ts（camelCase）。
-// 此文件作为 re-export 桥接，避免大量 import 路径修改。
+/**
+ * @file 数据库 Schema 兼容性类型导出桥接层
+ *
+ * 兼容性导出：旧代码从 `@/lib/db/schema` 导入类型，
+ * 实际类型定义已迁移至 `@/lib/types.ts`（camelCase 命名）。
+ * 此文件作为 re-export 桥接，避免大量 import 路径修改。
+ */
 
 export type { DBMessage, Document, Suggestion } from "@/lib/types";
 
-// Chat 类型（对应 public.chat 表，字段名 camelCase）
+/**
+ * Chat 类型（对应 `public.cct_chat` 表，字段名采用 camelCase）
+ */
 export type Chat = {
   id: string;
   title: string | null;

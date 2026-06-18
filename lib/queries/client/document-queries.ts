@@ -1,7 +1,12 @@
+/** @file 文档（document）版本的客户端查询：读取版本列表、获取最新版本、保存、删除 */
 import { createClient } from "@/lib/supabase/client";
 import type { ChatDocument } from "./types";
 
-// 获取文档的所有版本（按 created_at 升序）
+/**
+ * 获取文档的所有版本（按 created_at 升序）
+ * @param documentId 文档 ID
+ * @returns 文档版本列表
+ */
 export async function getDocumentsByDocumentId(
   documentId: string
 ): Promise<ChatDocument[]> {
@@ -26,7 +31,11 @@ export async function getDocumentsByDocumentId(
   }));
 }
 
-// 获取文档最新版本（查 cct_document_latest view）
+/**
+ * 获取文档最新版本（查 cct_document_latest view）
+ * @param documentId 文档 ID
+ * @returns 文档最新版本
+ */
 export async function getLatestDocument(
   documentId: string
 ): Promise<ChatDocument> {
@@ -52,7 +61,10 @@ export async function getLatestDocument(
   };
 }
 
-// 创建新文档版本
+/**
+ * 创建新文档版本
+ * @param data 文档字段（id、userId、content、kind、title、可选 createdAt）
+ */
 export async function saveDocument(data: {
   id: string;
   userId: string;
@@ -76,7 +88,11 @@ export async function saveDocument(data: {
   }
 }
 
-// 删除指定版本（删除 id 匹配且 created_at <= createdAt 的所有版本）
+/**
+ * 删除指定版本（删除 id 匹配且 created_at <= createdAt 的所有版本）
+ * @param documentId 文档 ID
+ * @param createdAt 截止创建时间
+ */
 export async function deleteDocument(
   documentId: string,
   createdAt: string
