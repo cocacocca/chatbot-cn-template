@@ -1,25 +1,17 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
 import { formatDistance } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  type Dispatch,
-  memo,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWindowSize } from "usehooks-ts";
 import { codeArtifact } from "@/artifacts/code/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
+import { useActiveChat } from "@/hooks/use-active-chat";
 import { useArtifact } from "@/hooks/use-artifact";
 import { useDocuments } from "@/hooks/use-documents";
 import { saveDocument } from "@/lib/queries/client/document-queries";
 import { createClient } from "@/lib/supabase/client";
-import type { Attachment, ChatMessage, Document } from "@/lib/types";
+import type { Document } from "@/lib/types";
 import { useSidebar } from "../ui/sidebar";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
@@ -50,35 +42,8 @@ export type UIArtifact = {
   };
 };
 
-function PureArtifact({
-  addToolApprovalResponse: _addToolApprovalResponse,
-  chatId: _chatId,
-  input: _input,
-  setInput: _setInput,
-  status,
-  stop,
-  attachments: _attachments,
-  setAttachments: _setAttachments,
-  sendMessage,
-  messages: _messages,
-  setMessages,
-  regenerate: _regenerate,
-  selectedModelId: _selectedModelId,
-}: {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
-  stop: UseChatHelpers<ChatMessage>["stop"];
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  selectedModelId: string;
-}) {
+function PureArtifact() {
+  const { status, stop, sendMessage, setMessages } = useActiveChat();
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
   const {
@@ -452,16 +417,4 @@ function PureArtifact({
   );
 }
 
-export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
-  if (prevProps.status !== nextProps.status) {
-    return false;
-  }
-  if (prevProps.input !== nextProps.input) {
-    return false;
-  }
-  if (prevProps.messages.length !== nextProps.messages.length) {
-    return false;
-  }
-
-  return true;
-});
+export { PureArtifact as Artifact };

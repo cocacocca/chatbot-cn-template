@@ -1,6 +1,6 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
 import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useActiveChat } from "@/hooks/use-active-chat";
 import { useMessages } from "@/hooks/use-messages";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -9,30 +9,22 @@ import { Greeting } from "./greeting";
 import { PreviewMessage, ThinkingMessage } from "./message";
 
 type MessagesProps = {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
-  chatId: string;
-  status: UseChatHelpers<ChatMessage>["status"];
-  messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isArtifactVisible: boolean;
-  isLoading?: boolean;
-  selectedModelId: string;
   onEditMessage?: (message: ChatMessage) => void;
 };
 
-function PureMessages({
-  addToolApprovalResponse,
-  chatId,
-  status,
-  messages,
-  setMessages,
-  regenerate,
-  isArtifactVisible,
-  isLoading,
-  selectedModelId: _selectedModelId,
-  onEditMessage,
-}: MessagesProps) {
+function PureMessages({ isArtifactVisible, onEditMessage }: MessagesProps) {
+  const {
+    chatId,
+    messages,
+    setMessages,
+    status,
+    regenerate,
+    addToolApprovalResponse,
+    isLoading,
+    currentModelId: _selectedModelId,
+  } = useActiveChat();
+
   const {
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
