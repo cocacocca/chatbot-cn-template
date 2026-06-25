@@ -1,5 +1,5 @@
 "use client";
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file Artifact 视图中的工具栏组件，提供快捷操作和状态控制 */
 import cx from "classnames";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 import { WrenchIcon, XIcon } from "lucide-react";
@@ -25,6 +25,21 @@ import { type ArtifactKind, artifactDefinitions } from "./artifact";
 import type { ArtifactToolbarItem } from "./create-artifact";
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from "./icons";
 
+/** Toolbar 组件使用的 sendMessage 类型，从 ActiveChatContextValue 中提取 */
+type ToolbarSendMessage = (message: {
+  role: "user";
+  parts: Array<{ type: "text"; text: string }>;
+}) => Promise<void>;
+
+/** Toolbar 组件使用的 status 类型，从 ActiveChatContextValue 中提取 */
+type ToolbarStatus = "ready" | "submitted" | "in_progress" | "error";
+
+/** Toolbar 组件使用的 setMessages 类型，从 ActiveChatContextValue 中提取 */
+type ToolbarSetMessages = (messages: ChatMessage[]) => void;
+
+/** Toolbar 组件使用的 stop 类型，从 ActiveChatContextValue 中提取 */
+type ToolbarStop = () => void;
+
 type ToolProps = {
   description: string;
   icon: ReactNode;
@@ -33,12 +48,8 @@ type ToolProps = {
   isToolbarVisible?: boolean;
   setIsToolbarVisible?: Dispatch<SetStateAction<boolean>>;
   isAnimating: boolean;
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  onClick: ({
-    sendMessage,
-  }: {
-    sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  }) => void;
+  sendMessage: ToolbarSendMessage;
+  onClick: ({ sendMessage }: { sendMessage: ToolbarSendMessage }) => void;
 };
 
 const Tool = ({
@@ -136,7 +147,7 @@ const ReadingLevelSelector = ({
 }: {
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
   isAnimating: boolean;
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+  sendMessage: ToolbarSendMessage;
 }) => {
   const LEVELS = [
     "Elementary",
@@ -249,7 +260,7 @@ export const Tools = ({
 }: {
   selectedTool: string | null;
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+  sendMessage: ToolbarSendMessage;
   isAnimating: boolean;
   tools: ArtifactToolbarItem[];
 }) => {
@@ -301,7 +312,7 @@ const PureToolbar = ({
   sendMessage,
   status,
   stop,
-  setMessages,
+  setMessages: _setMessages,
   artifactKind,
   consoleError,
   documentId,
@@ -310,10 +321,10 @@ const PureToolbar = ({
 }: {
   isToolbarVisible: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
-  status: UseChatHelpers<ChatMessage>["status"];
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  stop: UseChatHelpers<ChatMessage>["stop"];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+  status: ToolbarStatus;
+  sendMessage: ToolbarSendMessage;
+  stop: ToolbarStop;
+  setMessages: ToolbarSetMessages;
   artifactKind: ArtifactKind;
   consoleError?: string;
   documentId?: string;
@@ -357,7 +368,7 @@ const PureToolbar = ({
   }, []);
 
   useEffect(() => {
-    if (status === "streaming") {
+    if (status === "in_progress") {
       setIsToolbarVisible(false);
     }
   }, [status, setIsToolbarVisible]);
@@ -395,14 +406,14 @@ const PureToolbar = ({
           setIsAnimating(true);
         }}
         onHoverEnd={() => {
-          if (status === "streaming") {
+          if (status === "in_progress") {
             return;
           }
 
           startCloseTimer();
         }}
         onHoverStart={() => {
-          if (status === "streaming") {
+          if (status === "in_progress") {
             return;
           }
 
@@ -423,7 +434,7 @@ const PureToolbar = ({
           </motion.div>
         )}
 
-        {status === "streaming" ? (
+        {status === "in_progress" ? (
           <motion.div
             animate={{ scale: 1.4 }}
             className="p-3"
@@ -432,7 +443,6 @@ const PureToolbar = ({
             key="stop-icon"
             onClick={() => {
               stop();
-              setMessages((messages) => messages);
             }}
           >
             <StopIcon />

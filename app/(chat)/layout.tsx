@@ -4,7 +4,6 @@ import Script from "next/script";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { AppSidebar } from "@/components/chat/app-sidebar";
-import { DataStreamProvider } from "@/components/chat/data-stream-provider";
 import { SWRProvider } from "@/components/providers/swr-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +14,7 @@ const PREFETCH_PAGE_SIZE = 50;
 
 /**
  * 聊天布局组件
- * 加载 Pyodide 脚本、包裹 DataStreamProvider，并通过 Suspense 覆盖异步内容。
+ * 加载 Pyodide 脚本，并通过 Suspense 覆盖异步内容。
  */
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,11 +23,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"
         strategy="lazyOnload"
       />
-      <DataStreamProvider>
-        <Suspense fallback={<div className="flex h-dvh bg-sidebar" />}>
-          <ChatLayoutContent>{children}</ChatLayoutContent>
-        </Suspense>
-      </DataStreamProvider>
+      <Suspense fallback={<div className="flex h-dvh bg-sidebar" />}>
+        <ChatLayoutContent>{children}</ChatLayoutContent>
+      </Suspense>
     </>
   );
 }

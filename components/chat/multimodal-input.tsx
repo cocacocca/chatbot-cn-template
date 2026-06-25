@@ -1,6 +1,6 @@
 "use client";
 
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file 多模态输入组件，支持文本、附件、模型选择和快捷命令 */
 import type { UIMessage } from "ai";
 import equal from "fast-deep-equal";
 import { ArrowUpIcon, BrainIcon, EyeIcon, WrenchIcon } from "lucide-react";
@@ -51,6 +51,23 @@ import {
 } from "./slash-commands";
 import { SuggestedActions } from "./suggested-actions";
 
+/** MultimodalInput 组件使用的 sendMessage 类型，支持文本和文件附件 */
+type MultimodalSendMessage =
+  | ((message: {
+      role: "user";
+      parts: Array<
+        | { type: "text"; text: string }
+        | { type: "file"; url: string; name?: string; mediaType: string }
+      >;
+    }) => Promise<void>)
+  | (() => Promise<void>);
+
+/** MultimodalInput 组件使用的 status 类型 */
+type MultimodalStatus = "ready" | "submitted" | "in_progress" | "error";
+
+/** MultimodalInput 组件使用的 setMessages 类型 */
+type MultimodalSetMessages = (messages: ChatMessage[]) => void;
+
 function setCookie(name: string, value: string) {
   const maxAge = 60 * 60 * 24 * 365;
   // biome-ignore lint/suspicious/noDocumentCookie: needed for client-side cookie setting
@@ -78,15 +95,13 @@ function PureMultimodalInput({
   chatId: string;
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
+  status: MultimodalStatus;
   stop: () => void;
   attachments: Attachment[];
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   messages: UIMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  sendMessage:
-    | UseChatHelpers<ChatMessage>["sendMessage"]
-    | (() => Promise<void>);
+  setMessages: MultimodalSetMessages;
+  sendMessage: MultimodalSendMessage;
   className?: string;
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
@@ -147,7 +162,7 @@ function PureMultimodalInput({
         router.push("/");
         break;
       case "clear":
-        setMessages(() => []);
+        setMessages([]);
         break;
       case "rename":
         toast("Rename is available from the sidebar chat menu.");
@@ -512,7 +527,7 @@ function PureMultimodalInput({
             />
           </PromptInputTools>
 
-          {status === "submitted" || status === "streaming" ? (
+          {status === "submitted" || status === "in_progress" ? (
             <StopButton setMessages={setMessages} stop={stop} />
           ) : (
             <PromptInputSubmit
@@ -571,7 +586,7 @@ function PureAttachmentsButton({
   selectedModelId,
 }: {
   fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
-  status: UseChatHelpers<ChatMessage>["status"];
+  status: MultimodalStatus;
   selectedModelId: string;
 }) {
   const { capabilities: caps } = useModels();
@@ -712,10 +727,10 @@ const ModelSelectorCompact = memo(PureModelSelectorCompact);
 
 function PureStopButton({
   stop,
-  setMessages,
+  setMessages: _setMessages,
 }: {
   stop: () => void;
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+  setMessages: MultimodalSetMessages;
 }) {
   return (
     <Button
@@ -724,7 +739,6 @@ function PureStopButton({
       onClick={(event) => {
         event.preventDefault();
         stop();
-        setMessages((messages) => messages);
       }}
     >
       <StopIcon size={14} />

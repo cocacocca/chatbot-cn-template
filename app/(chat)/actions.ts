@@ -3,8 +3,6 @@
 
 import { generateText, type UIMessage } from "ai";
 import { cookies } from "next/headers";
-import { deleteMessagesByChatIdAfterTimestamp } from "@/lib/ai/chat-db";
-import { titlePrompt } from "@/lib/ai/prompts";
 import { getTitleModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 import { getTextFromMessage } from "@/lib/utils";
@@ -34,7 +32,8 @@ export async function generateTitleFromUserMessage({
 }) {
   const { text } = await generateText({
     model: await getTitleModel(userId),
-    system: titlePrompt,
+    system:
+      "Generate a short, concise title (max 50 chars) for a new chat session based on the user's first message. Just output the title, nothing else.",
     prompt: getTextFromMessage(message),
   });
   return text
@@ -79,8 +78,14 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
     throw new Error("Unauthorized");
   }
 
-  await deleteMessagesByChatIdAfterTimestamp(
-    message.chat_id,
-    new Date(message.created_at)
-  );
+  // 直接使用 Supabase 删除指定时间戳之后的消息
+  const { error: deleteError } = await supabase
+    .from("cct_message")
+    .delete()
+    .eq("chat_id", message.chat_id)
+    .gte("created_at", new Date(message.created_at).toISOString());
+
+  if (deleteError) {
+    throw new Error("Failed to delete messages");
+  }
 }

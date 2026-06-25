@@ -1,20 +1,24 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file 消息列表组件，显示会话消息并处理滚动与加载状态 */
 import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useMessages } from "@/hooks/chat/use-messages";
+import { useScrollToBottom } from "@/hooks/chat/use-scroll-to-bottom";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { PreviewMessage, ThinkingMessage } from "./message";
 
+/** Messages 组件属性，从 ActiveChatContextValue 中提取相关字段 */
 type MessagesProps = {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
   chatId: string;
-  status: UseChatHelpers<ChatMessage>["status"];
+  status: "ready" | "submitted" | "in_progress" | "error";
   messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
+  setMessages: (messages: ChatMessage[]) => void;
+  regenerate: () => Promise<void>;
   isArtifactVisible: boolean;
   isLoading?: boolean;
   selectedModelId: string;
@@ -38,13 +42,8 @@ function PureMessages({
     endRef: messagesEndRef,
     isAtBottom,
     scrollToBottom,
-    hasSentMessage,
     reset,
-  } = useMessages({
-    status,
-  });
-
-  useDataStream();
+  } = useScrollToBottom();
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
@@ -75,14 +74,14 @@ function PureMessages({
               addToolApprovalResponse={addToolApprovalResponse}
               chatId={chatId}
               isLoading={
-                status === "streaming" && messages.length - 1 === index
+                status === "in_progress" && messages.length - 1 === index
               }
               key={message.id}
               message={message}
               onEdit={onEditMessage}
               regenerate={regenerate}
               requiresScrollPadding={
-                hasSentMessage && index === messages.length - 1
+                messages.length > 0 && index === messages.length - 1
               }
               setMessages={setMessages}
             />

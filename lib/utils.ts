@@ -2,13 +2,14 @@
 import type {
   UIMessage,
   UIMessagePart,
+  UITools,
 } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { formatISO } from 'date-fns';
 import { twMerge } from 'tailwind-merge';
 import type { DBMessage, Document } from '@/lib/db/schema';
 import { ChatbotError, type ErrorCode } from './errors';
-import type { ChatMessage, ChatTools, CustomUIDataTypes } from './types';
+import type { ChatMessage, CustomUIDataTypes } from './types';
 
 /**
  * 合并 Tailwind 类名：clsx 处理条件类名，twMerge 去重冲突类
@@ -114,7 +115,7 @@ export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {
   return messages.map((message) => ({
     id: message.id,
     role: message.role as 'user' | 'assistant' | 'system',
-    parts: message.parts as UIMessagePart<CustomUIDataTypes, ChatTools>[],
+    parts: message.parts as UIMessagePart<CustomUIDataTypes, UITools>[],
     metadata: {
       createdAt: formatISO(message.createdAt),
     },
@@ -129,6 +130,6 @@ export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {
 export function getTextFromMessage(message: ChatMessage | UIMessage): string {
   return message.parts
     .filter((part) => part.type === 'text')
-    .map((part) => (part as { type: 'text'; text: string}).text)
+    .map((part) => (part as { type: 'text'; text: string }).text)
     .join('');
 }

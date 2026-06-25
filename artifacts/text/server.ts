@@ -1,8 +1,17 @@
 /** @file 文本 Artifact 服务端处理器，负责基于 LLM 流式生成与更新 Markdown 文本 */
 import { smoothStream, streamText } from "ai";
-import { updateDocumentPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocumentHandler } from "@/lib/artifacts/server";
+
+/**
+ * 生成更新文档的 prompt
+ * @param content - 当前文档内容
+ * @param kind - 文档类型
+ * @returns 系统 prompt
+ */
+function getUpdateDocumentPrompt(content: string, kind: string): string {
+  return `You are updating a ${kind} document. The current content is:\n\n${content}\n\nImprove the document based on the user's request. Keep the style and format consistent. Output only the updated content, no explanations.`;
+}
 
 export const textDocumentHandler = createDocumentHandler<"text">({
   kind: "text",
@@ -44,7 +53,7 @@ export const textDocumentHandler = createDocumentHandler<"text">({
 
     const { fullStream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
-      system: updateDocumentPrompt(document.content, "text"),
+      system: getUpdateDocumentPrompt(document.content, "text"),
       experimental_transform: smoothStream({ chunking: "word" }),
       prompt: description,
     });

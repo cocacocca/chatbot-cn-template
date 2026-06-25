@@ -4,10 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 function isPrivateOrLocalHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
 
-  if (host === "localhost" || host.endsWith(".localhost")) return true;
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    return true;
+  }
 
   // IPv6 localhost / link-local / unique-local
-  if (host === "::1" || host.startsWith("fe80:") || host.startsWith("fc") || host.startsWith("fd")) {
+  if (
+    host === "::1" ||
+    host.startsWith("fe80:") ||
+    host.startsWith("fc") ||
+    host.startsWith("fd")
+  ) {
     return true;
   }
 
@@ -15,7 +22,9 @@ function isPrivateOrLocalHost(hostname: string): boolean {
   const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4Match) {
     const parts = ipv4Match.slice(1).map((v) => Number(v));
-    if (parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return true;
+    if (parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) {
+      return true;
+    }
 
     const [a, b] = parts;
     if (
@@ -41,15 +50,25 @@ function buildSafeModelsUrl(inputBaseUrl: string): string | null {
     return null;
   }
 
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
-  if (parsed.username || parsed.password) return null;
-  if (isPrivateOrLocalHost(parsed.hostname)) return null;
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return null;
+  }
+  if (parsed.username || parsed.password) {
+    return null;
+  }
+  if (isPrivateOrLocalHost(parsed.hostname)) {
+    return null;
+  }
 
   // 仅允许默认端口，避免探测内网非常规服务
-  if (parsed.port && parsed.port !== "80" && parsed.port !== "443") return null;
+  if (parsed.port && parsed.port !== "80" && parsed.port !== "443") {
+    return null;
+  }
 
   // 固定请求到 /models，忽略用户提供的 path/query/hash
-  parsed.pathname = parsed.pathname.endsWith("/") ? `${parsed.pathname}models` : `${parsed.pathname}/models`;
+  parsed.pathname = parsed.pathname.endsWith("/")
+    ? `${parsed.pathname}models`
+    : `${parsed.pathname}/models`;
   parsed.search = "";
   parsed.hash = "";
 

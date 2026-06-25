@@ -1,8 +1,23 @@
 /** @file 电子表格 Artifact 服务端处理器，负责基于 LLM 流式生成与更新 CSV 内容 */
 import { streamText } from "ai";
-import { sheetPrompt, updateDocumentPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocumentHandler } from "@/lib/artifacts/server";
+
+/**
+ * 表格生成 prompt
+ */
+const sheetPrompt =
+  "You are a spreadsheet generator. Generate clean, well-formatted CSV data. Use appropriate headers and data types.";
+
+/**
+ * 生成更新文档的 prompt
+ * @param content - 当前文档内容
+ * @param kind - 文档类型
+ * @returns 系统 prompt
+ */
+function getUpdateDocumentPrompt(content: string, kind: string): string {
+  return `You are updating a ${kind} document. The current content is:\n\n${content}\n\nImprove the document based on the user's request. Keep the style and format consistent. Output only the updated content, no explanations.`;
+}
 
 export const sheetDocumentHandler = createDocumentHandler<"sheet">({
   kind: "sheet",
@@ -42,7 +57,7 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
 
     const { fullStream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
-      system: `${updateDocumentPrompt(document.content, "sheet")}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
+      system: `${getUpdateDocumentPrompt(document.content, "sheet")}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
       prompt: description,
     });
 

@@ -1,18 +1,23 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file Artifact 视图中的消息列表组件，显示会话消息并处理滚动与加载状态 */
 import { AnimatePresence, motion } from "framer-motion";
 import { memo } from "react";
-import { useMessages } from "@/hooks/chat/use-messages";
+import { useScrollToBottom } from "@/hooks/chat/use-scroll-to-bottom";
 import type { ChatMessage } from "@/lib/types";
 import type { UIArtifact } from "./artifact";
 import { PreviewMessage, ThinkingMessage } from "./message";
 
+/** ArtifactMessages 组件属性，从 ActiveChatContextValue 中提取相关字段 */
 type ArtifactMessagesProps = {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
   chatId: string;
-  status: UseChatHelpers<ChatMessage>["status"];
+  status: "ready" | "submitted" | "in_progress" | "error";
   messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
+  setMessages: (messages: ChatMessage[]) => void;
+  regenerate: () => Promise<void>;
   artifactStatus: UIArtifact["status"];
 };
 
@@ -29,10 +34,7 @@ function PureArtifactMessages({
     endRef: messagesEndRef,
     onViewportEnter,
     onViewportLeave,
-    hasSentMessage,
-  } = useMessages({
-    status,
-  });
+  } = useScrollToBottom();
 
   return (
     <div
@@ -43,12 +45,12 @@ function PureArtifactMessages({
         <PreviewMessage
           addToolApprovalResponse={addToolApprovalResponse}
           chatId={chatId}
-          isLoading={status === "streaming" && index === messages.length - 1}
+          isLoading={status === "in_progress" && index === messages.length - 1}
           key={message.id}
           message={message}
           regenerate={regenerate}
           requiresScrollPadding={
-            hasSentMessage && index === messages.length - 1
+            messages.length > 0 && index === messages.length - 1
           }
           setMessages={setMessages}
         />

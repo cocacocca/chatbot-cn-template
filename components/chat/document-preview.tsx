@@ -27,7 +27,7 @@ import { ImageEditor } from "./image-editor";
 import { SpreadsheetEditor } from "./sheet-editor";
 import { Editor } from "./text-editor";
 
-type DocumentToolOutput = {
+export type DocumentToolOutput = {
   id: string;
   title: string;
   kind: ArtifactKind;

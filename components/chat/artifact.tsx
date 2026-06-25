@@ -1,4 +1,4 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file Artifact 视图组件，显示文档/代码/表格等 artifact 内容 */
 import { formatDistance } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -50,6 +50,30 @@ export type UIArtifact = {
   };
 };
 
+/** Artifact 组件属性，从 ActiveChatContextValue 中提取相关字段 */
+type ArtifactProps = {
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
+  chatId: string;
+  input: string;
+  setInput: Dispatch<SetStateAction<string>>;
+  status: "ready" | "submitted" | "in_progress" | "error";
+  stop: () => void;
+  attachments: Attachment[];
+  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+  messages: ChatMessage[];
+  setMessages: (messages: ChatMessage[]) => void;
+  sendMessage: (message: {
+    role: "user";
+    parts: Array<{ type: "text"; text: string }>;
+  }) => Promise<void>;
+  regenerate: () => Promise<void>;
+  selectedModelId: string;
+};
+
 function PureArtifact({
   addToolApprovalResponse: _addToolApprovalResponse,
   chatId: _chatId,
@@ -64,21 +88,7 @@ function PureArtifact({
   setMessages,
   regenerate: _regenerate,
   selectedModelId: _selectedModelId,
-}: {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
-  stop: UseChatHelpers<ChatMessage>["stop"];
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  selectedModelId: string;
-}) {
+}: ArtifactProps) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
   const {

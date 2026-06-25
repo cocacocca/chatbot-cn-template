@@ -94,7 +94,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
     if (streamPart.type === "data-codeDelta") {
       setArtifact((draftArtifact) => ({
         ...draftArtifact,
-        content: streamPart.data,
+        content: streamPart.data as string,
         // 当内容长度在 300~310 之间时自动展示，避免过早显示导致闪烁
         isVisible:
           draftArtifact.status === "streaming" &&
