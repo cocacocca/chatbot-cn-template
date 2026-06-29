@@ -59,16 +59,25 @@ async function getMessageCount(userId: string): Promise<number> {
  * 速率限制 Hook
  *
  * 订阅 session.started 事件，在会话开始时检查用户消息数量。
- * 使用 getMessageCountByUserId(userId) 获取消息总数。
- * 超限时抛出错误，阻止请求继续执行。
+ * 使用 getMessageCount(userId) 获取消息总数。
+ * 超限时抛出错误（在 try-catch 之外），阻止请求继续执行。
  *
- * 使用 try-catch 防止数据库查询失败影响主流程。
+ * 错误处理策略：
+ * - 数据库查询失败：fail-open（放行），仅记录错误，不阻止请求
+ * - 速率限制超限：必须抛出错误让 EVE 阻止请求（throw 不可在 try-catch 内）
  */
 export default defineHook({
   events: {
     /**
      * 处理 session.started 事件
      * 在会话开始时检查速率限制
+     *
+     * 错误处理策略：
+     * - 数据库查询失败：fail-open（放行），仅记录错误，不阻止请求
+     * - 速率限制超限：必须抛出错误（在 try-catch 之外），让 EVE 阻止请求
+     *
+     * 关键：超限 throw 必须在 try-catch 之外，否则会被同层 catch 吞没，
+     * 导致速率限制完全失效。
      *
      * @param _event - session.started 事件数据
      * @param ctx - Hook 上下文，包含 session 信息
@@ -86,20 +95,21 @@ export default defineHook({
         return;
       }
 
+      let messageCount: number;
       try {
-        // 获取用户消息总数
-        const messageCount = await getMessageCount(userId);
-
-        // 超限时抛出错误，阻止请求
-        if (messageCount >= RATE_LIMIT_MAX_MESSAGES) {
-          throw new Error(
-            `Rate limit exceeded: You have sent ${messageCount} messages (limit: ${RATE_LIMIT_MAX_MESSAGES}).`
-          );
-        }
+        // 仅包裹数据库查询，超限判断移出 try-catch
+        messageCount = await getMessageCount(userId);
       } catch (err) {
-        // 数据库查询失败时记录错误，但不阻止请求（降级策略）
-        console.error("[rate-limit] Failed to check rate limit:", err);
-        // 注意：速率限制超限的错误已在上方抛出，此处仅捕获数据库查询失败
+        // 数据库查询失败：fail-open（放行），不阻止请求
+        console.error("[rate-limit] DB query failed, fail-open:", err);
+        return;
+      }
+
+      // 超限必须抛出，移出 try-catch，让 EVE 阻止请求
+      if (messageCount >= RATE_LIMIT_MAX_MESSAGES) {
+        throw new Error(
+          `Rate limit exceeded: You have sent ${messageCount} messages (limit: ${RATE_LIMIT_MAX_MESSAGES}).`
+        );
       }
     },
   },

@@ -16,15 +16,16 @@ export type {
 export const artifactKinds = ["text", "code", "sheet"] as const;
 
 /**
- * 生成符合 UUID v4 规范的随机字符串
+ * 生成符合 UUID v4 规范的随机字符串（密码学安全）
+ *
+ * 使用 Node.js 19+ 全局 `crypto.randomUUID()` 替代基于 `Math.random()` 的
+ * 手工实现。原实现非密码学安全，且每次调用产生新值，导致 persist-messages
+ * hook 的 upsert 去重失效（每条消息都拿到全新 ID，永远走 insert 分支）。
+ *
  * @returns UUID v4 字符串
  */
 export function generateUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 /**
