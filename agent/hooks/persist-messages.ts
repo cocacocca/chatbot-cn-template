@@ -7,7 +7,7 @@
 import { defineHook } from "eve/hooks";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
-import { generateUUID } from "@/lib/utils";
+import { generateUUID, isUuid } from "../lib/types";
 
 /**
  * 消息持久化 Hook
@@ -35,6 +35,11 @@ export default defineHook({
 
       // 未认证用户（如内部 runtime 调用）不持久化
       if (!userId) {
+        return;
+      }
+
+      // 非 UUID principalId（如 localDev 的 "local-dev"）跳过，避免 uuid 类型列读写报错
+      if (!isUuid(userId)) {
         return;
       }
 
@@ -91,6 +96,11 @@ export default defineHook({
       const sessionId = ctx.session.id;
 
       if (!userId) {
+        return;
+      }
+
+      // 非 UUID principalId（如 localDev 的 "local-dev"）跳过，避免 uuid 类型列读写报错
+      if (!isUuid(userId)) {
         return;
       }
 

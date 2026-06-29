@@ -1,12 +1,11 @@
-import "server-only";
+// import "server-only"; // 临时移除：eve CLI 与 server-only 存在兼容性问题
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * @file 服务端数据库查询封装
  *
  * 使用 admin 客户端（service_role 密钥）执行查询，绕过 RLS 策略。
- * 通过 `import "server-only"` 保证此模块仅可在服务端代码中导入，
- * 避免敏感操作泄露至客户端 bundle。
+ * 注意：移除 server-only 导入后，需确保此模块仅被服务端代码导入。
  */
 
 /**

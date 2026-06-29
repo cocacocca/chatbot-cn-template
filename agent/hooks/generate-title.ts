@@ -8,6 +8,7 @@ import { generateText } from "ai";
 import { defineHook } from "eve/hooks";
 import { getTitleModel } from "@/lib/ai/providers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isUuid } from "../lib/types";
 
 /**
  * 会话标题生成 Hook
@@ -33,6 +34,11 @@ export default defineHook({
 
       // 未认证用户不生成标题
       if (!userId) {
+        return;
+      }
+
+      // 非 UUID principalId（如 localDev 的 "local-dev"）跳过，避免 uuid 类型查询报错
+      if (!isUuid(userId)) {
         return;
       }
 

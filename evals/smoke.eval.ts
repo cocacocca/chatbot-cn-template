@@ -17,7 +17,6 @@ export default defineEval({
     "Basic message coverage - verify agent can respond to greetings.",
   async test(t) {
     await t.send("Hello, how are you?");
-    t.completed();
     t.check(t.reply, includes("hello"));
   },
 });

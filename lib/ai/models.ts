@@ -1,5 +1,5 @@
 /** @file 聊天模型查询服务：聚合数据库模型配置与环境变量 fallback，对外提供模型列表与默认模型查询能力。 */
-import "server-only";
+// import "server-only"; // 临时移除：eve CLI 与 server-only 存在兼容性问题
 
 import {
   getAllModelConfigs,

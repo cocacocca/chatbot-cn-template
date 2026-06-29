@@ -9,8 +9,12 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * 获取当前用户的所有模型配置与能力映射
- * 数据库为空时，从环境变量构造 fallback 模型（与 getChatModels 逻辑一致）。
+ * 获取当前用户的所有模型配置与能力映射。
+ *
+ * 数据库为唯一真实源：优先返回数据库中的模型配置。
+ * 数据库为空时（如首次启动），从环境变量 OPENAI_* 构造 fallback 模型，
+ * 与 EVE 主对话模型解析逻辑（agent/lib/model.ts）保持一致——
+ * 此时 EVE 也 fallback 到同一环境变量，确保 /settings 所见即 EVE 所用。
  * @returns JSON { models, capabilities }
  */
 export async function GET() {
@@ -24,7 +28,7 @@ export async function GET() {
 
   const configs = await getAllModelConfigsForClient(user.id);
 
-  // 数据库为空时，从环境变量构造 fallback 模型（与 getChatModels 逻辑一致）
+  // 数据库为空时，从环境变量构造 fallback 模型（与 EVE getEveModel 一致）
   let models = configs;
   if (configs.length === 0) {
     const envModelId = process.env.OPENAI_BASE_MODEL;

@@ -23,3 +23,5 @@ yarn-error.log*
 next-env.d.ts
 tsconfig.tsbuildinfo
 docs/
+.eve/
+.workflow-data/

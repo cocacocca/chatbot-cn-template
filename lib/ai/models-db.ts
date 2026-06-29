@@ -1,10 +1,10 @@
 /** @file 模型配置（cct_model_config 表）数据库访问层，提供按用户隔离的模型 CRUD 能力。 */
-import "server-only";
-import { createClient } from "@/lib/supabase/server";
+// import "server-only"; // 临时移除：eve CLI 与 server-only 存在兼容性问题
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
 /** 模型配置（应用层 camelCase 形态）。 */
-type ModelConfig = {
+export type ModelConfig = {
   /** 模型 id（同时作为展示名称的 fallback）。 */
   id: string;
   /** 模型展示名称（数据库无 name 字段，使用 id 兜底）。 */
@@ -76,7 +76,7 @@ function toModelConfig(row: ModelConfigRow): ModelConfig {
 // 客户端可调用，返回时脱敏 api_key
 // 使用 server client（受 RLS 保护），仅查询当前用户自己的模型
 export async function getAllModelConfigsForClient(userId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
@@ -106,7 +106,7 @@ export async function getAllModelConfigsForClient(userId: string) {
 export async function getAllModelConfigs(
   userId: string
 ): Promise<ModelConfig[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
@@ -130,7 +130,7 @@ export async function getModelConfigById(
   userId: string,
   id: string
 ): Promise<ModelConfig | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
@@ -158,7 +158,7 @@ export async function getModelConfigById(
 export async function getDefaultModelConfig(
   userId: string
 ): Promise<ModelConfig | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
@@ -177,6 +177,58 @@ export async function getDefaultModelConfig(
 }
 
 /**
+ * 查询全局默认模型配置（is_default = true，不按 user_id 隔离）。
+ *
+ * 用于 EVE 主对话模型解析：单用户/全局场景下，EVE agent 模块在加载时
+ * 没有请求上下文（无法获取 userId），因此按 is_default 取全局第一条
+ * 作为系统默认模型。详见 agent/lib/model.ts。
+ *
+ * 多行命中时取创建时间最早的一条（order by created_at asc, limit 1），
+ * 保持稳定选择。配合应用层保证同一时刻仅一条 is_default=true 的约定。
+ *
+ * @returns 全局默认模型配置；未配置任何模型时返回 null
+ */
+export async function getGlobalDefaultModelConfig(): Promise<ModelConfig | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("cct_model_config")
+    .select("*")
+    .eq("is_default", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+  if (!data) {
+    return null;
+  }
+  return toModelConfig(data as ModelConfigRow);
+}
+
+/**
+ * 查询数据库全部模型配置（不按 user_id 隔离，启动引导用）。
+ *
+ * 用于 EVE 主对话模型解析兜底：当无 is_default 标记的模型时，
+ * 取第一条作为兜底（详见 agent/lib/model.ts）。复用 toModelConfig 映射。
+ *
+ * @returns 全部模型配置列表（按创建时间升序，含 api_key）
+ */
+export async function getAllGlobalModelConfigs(): Promise<ModelConfig[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("cct_model_config")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+  return (data as ModelConfigRow[]).map(toModelConfig);
+}
+
+/**
  * 查询用户的标题生成模型配置（is_title_model = true）。
  *
  * @param userId 用户 id
@@ -185,7 +237,7 @@ export async function getDefaultModelConfig(
 export async function getTitleModelConfig(
   userId: string
 ): Promise<ModelConfig | null> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("cct_model_config")
     .select("*")
@@ -225,7 +277,7 @@ export async function createModelConfig(
     isTitleModel?: boolean;
   }
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   // camelCase → snake_case（name 字段不存储，数据库无此字段）
   const {
     name: _name,
@@ -280,7 +332,7 @@ export async function updateModelConfig(
     isTitleModel: boolean;
   }>
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   // camelCase → snake_case（name 字段不存储，数据库无此字段）
   const {
     name: _name,
@@ -335,7 +387,7 @@ export async function updateModelConfig(
  * @param id 模型 id
  */
 export async function deleteModelConfig(userId: string, id: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   // 同时校验 user_id 归属（RLS 也会校验，这里显式 .eq 双保险）
   const { error } = await supabase
     .from("cct_model_config")

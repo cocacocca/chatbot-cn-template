@@ -1,7 +1,6 @@
 /** @file 当前活跃会话上下文，使用 EVE Agent 统一管理聊天状态、消息收发与模型切换 */
 "use client";
 
-import { useEveAgent } from "eve/react";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -21,6 +20,7 @@ import type { UIArtifact } from "@/components/chat/artifact";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { toast } from "@/components/chat/toast";
 import { initialArtifactData } from "@/hooks/data/use-artifact";
+import { useEveAgent } from "@/lib/eve/react";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
 

@@ -4,7 +4,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getDocumentById, saveDocument } from "@/lib/ai/artifacts-db";
 import { getLanguageModel } from "@/lib/ai/providers";
-import type { Document } from "@/lib/types";
+import type { AgentDocument } from "../lib/types";
 
 /**
  * 生成更新文档的系统 prompt：将当前内容与变更描述组合，并按类型追加输出约束。
@@ -14,7 +14,7 @@ import type { Document } from "@/lib/types";
  * @returns 对应文档类型的系统 prompt
  */
 function getUpdateSystemPrompt(
-  document: Document,
+  document: AgentDocument,
   description: string
 ): string {
   const base = `You are updating a ${document.kind} document. The current content is:\n\n${document.content}\n\nImprove the document based on the user's request. Keep the style and format consistent. Output only the updated content, no explanations.`;

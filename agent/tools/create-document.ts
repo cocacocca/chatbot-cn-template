@@ -4,8 +4,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { saveDocument } from "@/lib/ai/artifacts-db";
 import { getLanguageModel } from "@/lib/ai/providers";
-import { artifactKinds } from "@/lib/artifacts/server";
-import { generateUUID } from "@/lib/utils";
+import { artifactKinds, generateUUID } from "../lib/types";
 
 /**
  * 代码生成基础 prompt

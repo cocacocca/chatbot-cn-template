@@ -1,5 +1,5 @@
 /** @file AI 模型 provider 工厂：根据数据库或环境变量配置创建 OpenAI 兼容客户端并返回对应的语言模型实例。 */
-import "server-only";
+// import "server-only"; // 临时移除：eve CLI 与 server-only 存在兼容性问题
 
 import { createOpenAI } from "@ai-sdk/openai";
 import {

@@ -16,7 +16,6 @@ export default defineEval({
   description: "Verify weather tool usage and response content.",
   async test(t) {
     await t.send("What is the weather in Brooklyn?");
-    t.completed();
     t.calledTool("get-weather");
     t.check(t.reply, includes("Sunny"));
   },

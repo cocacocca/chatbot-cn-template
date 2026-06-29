@@ -4,21 +4,15 @@
       "url": "https://mcp.vercel.com"
     },
     "supabase": {
-      "url": "https://mcp.supabase.com/mcp"
+      "url": "http://localhost:8000/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment"
     },
     "shadcn": {
       "command": "npx",
-      "args": [
-        "shadcn@latest",
-        "mcp"
-      ]
+      "args": ["shadcn@latest", "mcp"]
     },
     "Sequential Thinking": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ],
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
       "env": {},
       "disabled": true
     },
@@ -35,9 +29,7 @@
     },
     "eslint": {
       "command": "npx",
-      "args": [
-        "@eslint/mcp@latest"
-      ],
+      "args": ["@eslint/mcp@latest"],
       "env": {}
     }
   }

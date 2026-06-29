@@ -1,7 +1,7 @@
 /** @file 文档（Artifact）数据库访问层，提供文档查询、保存、更新及建议（suggestion）持久化能力。 */
-import "server-only";
+// import "server-only"; // 临时移除：eve CLI 与 server-only 存在兼容性问题
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Document } from "@/lib/types";
+import type { ServerDocument } from "@/lib/types-server";
 
 /**
  * 根据 id 查询单个文档的最新版本。
@@ -11,7 +11,9 @@ import type { Document } from "@/lib/types";
  * @returns 文档对象；不存在时返回 null
  */
 // 查询单个文档的最新版本（通过 cct_document_latest view）
-export async function getDocumentById(id: string): Promise<Document | null> {
+export async function getDocumentById(
+  id: string
+): Promise<ServerDocument | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("cct_document_latest")

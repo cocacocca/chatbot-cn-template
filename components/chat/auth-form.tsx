@@ -61,7 +61,7 @@ export function AuthForm({
 
       toast({ type: "success", description: "注册成功！" });
       setIsSuccessful(true);
-      router.push("/");
+      router.push("/login");
       router.refresh();
     }
   }

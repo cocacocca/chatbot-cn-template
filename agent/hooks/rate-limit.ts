@@ -6,6 +6,7 @@
 
 import { defineHook } from "eve/hooks";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isUuid } from "../lib/types";
 
 /**
  * 速率限制配置
@@ -77,6 +78,11 @@ export default defineHook({
 
       // 未认证用户不检查速率限制
       if (!userId) {
+        return;
+      }
+
+      // 非 UUID principalId（如 localDev 的 "local-dev"）跳过，避免 uuid 类型查询报错
+      if (!isUuid(userId)) {
         return;
       }
 

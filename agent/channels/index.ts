@@ -4,5 +4,4 @@
  * @module agent/channels
  */
 
-// TODO: 在此导出通道模块
-// export * from './example-channel';
+export { default } from "./eve";

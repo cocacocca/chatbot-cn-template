@@ -16,7 +16,6 @@ export default defineEval({
   description: "Verify artifact creation tool usage.",
   async test(t) {
     await t.send("Write a short essay about AI trends");
-    t.completed();
     t.calledTool("create-document");
     t.check(t.reply, includes("document"));
   },

@@ -4,8 +4,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getDocumentById, saveSuggestions } from "@/lib/ai/artifacts-db";
 import { getLanguageModel } from "@/lib/ai/providers";
-import type { Suggestion } from "@/lib/types";
-import { generateUUID } from "@/lib/utils";
+import { type AgentSuggestion, generateUUID } from "../lib/types";
 
 /**
  * request_suggestions EVE 工具。
@@ -67,7 +66,7 @@ export default defineTool({
 
     // 增量消费流式输出，累积完整建议列表
     const suggestions: Omit<
-      Suggestion,
+      AgentSuggestion,
       "userId" | "createdAt" | "documentCreatedAt"
     >[] = [];
     for await (const partialOutput of partialOutputStream) {
