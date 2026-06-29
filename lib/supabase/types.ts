@@ -44,6 +44,7 @@ export type Database = {
           name: string | null; // 展示名称
           image: string | null; // 头像 URL
           is_anonymous: boolean; // 是否为匿名用户
+          role: string; // 用户角色（'user' | 'admin'），用于管理员鉴权，migration 00006 添加
           created_at: string; // 创建时间（ISO 字符串）
           updated_at: string; // 更新时间（ISO 字符串）
         };
@@ -52,11 +53,13 @@ export type Database = {
           name?: string | null;
           image?: string | null;
           is_anonymous?: boolean;
+          role?: string; // 可选，默认 'user'
         };
         Update: {
           name?: string | null;
           image?: string | null;
           is_anonymous?: boolean;
+          role?: string;
         };
         Relationships: [];
       };

@@ -7,7 +7,7 @@
 
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/admin-guard";
 
 /** Skills 目录的绝对路径 */
 const SKILLS_DIR = join(process.cwd(), "agent", "skills");
@@ -124,12 +124,9 @@ function extractDescription(content: string): string {
  * @returns 200 { skills: SkillItem[] } / 401 未授权 / 500 服务器错误
  */
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const admin = await requireAdmin();
+  if (!admin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -202,12 +199,9 @@ export async function GET() {
  * @returns 201 创建成功 / 400 参数缺失或非法 / 401 未授权 / 409 已存在 / 500 服务器错误
  */
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const admin = await requireAdmin();
+  if (!admin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -306,12 +300,9 @@ export async function POST(request: Request) {
  * @returns 200 更新成功 / 400 参数缺失 / 401 未授权 / 404 文件不存在 / 500 服务器错误
  */
 export async function PUT(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const admin = await requireAdmin();
+  if (!admin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -395,12 +386,9 @@ export async function PUT(request: Request) {
  * @returns 200 删除成功 / 400 缺少参数 / 401 未授权 / 404 不存在 / 500 服务器错误
  */
 export async function DELETE(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const admin = await requireAdmin();
+  if (!admin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);

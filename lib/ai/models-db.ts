@@ -1,5 +1,5 @@
 /** @file 模型配置（cct_model_config 表）数据库访问层，提供按用户隔离的模型 CRUD 能力。 */
-// import "server-only"; // 临时移除：eve CLI 与 server-only 存在兼容性问题
+import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -67,14 +67,14 @@ function toModelConfig(row: ModelConfigRow): ModelConfig {
 
 /**
  * 查询指定用户的全部模型配置（客户端可调用版本）。
- * 使用 server client（受 RLS 保护），仅查询当前用户自己的模型；
+ * 使用 admin client（绕过 RLS）+ 应用层 user_id 过滤模拟用户隔离；
  * 返回前对 api_key 脱敏（置为 null），避免敏感信息泄露到客户端。
  *
  * @param userId 用户 id
  * @returns 脱敏后的模型配置列表（按创建时间升序）
  */
 // 客户端可调用，返回时脱敏 api_key
-// 使用 server client（受 RLS 保护），仅查询当前用户自己的模型
+// 使用 admin client + 应用层 user_id 过滤
 export async function getAllModelConfigsForClient(userId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -96,13 +96,13 @@ export async function getAllModelConfigsForClient(userId: string) {
 
 /**
  * 查询指定用户的全部模型配置（服务端 AI 链路使用，不脱敏）。
- * 使用 server client（受 RLS 保护），仅查询当前用户自己的模型。
+ * 使用 admin client（绕过 RLS）+ 应用层 user_id 过滤，仅查询指定用户的模型。
  *
  * @param userId 用户 id
  * @returns 模型配置列表（按创建时间升序），包含 api_key
  */
 // 服务端 AI 链路使用，不脱敏
-// 使用 server client（受 RLS 保护），仅查询当前用户自己的模型
+// 使用 admin client + 应用层 user_id 过滤
 export async function getAllModelConfigs(
   userId: string
 ): Promise<ModelConfig[]> {
@@ -120,9 +120,9 @@ export async function getAllModelConfigs(
 }
 
 /**
- * 根据 id 查询单个模型配置。
+ * 根据 id 查询单个模型配置。使用 admin client（绕过 RLS）+ 应用层 user_id 过滤。
  *
- * @param userId 用户 id（用于 RLS 隔离）
+ * @param userId 用户 id（用于应用层 user_id 过滤）
  * @param id 模型 id
  * @returns 模型配置；不存在时返回 null
  */
