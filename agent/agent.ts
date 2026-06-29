@@ -18,11 +18,14 @@ import { getEveModel } from "./lib/model";
  * EVE Agent 默认配置
  * @description model 始终是 provider 实例（external 路由），直连 OpenAI 兼容端点。
  *   modelContextWindowTokens 显式声明上下文窗口，避免 EVE 远程查询模型元数据。
+ *   reasoning 设为 'medium'：对支持的推理模型（o1/DeepSeek-R1 等）启用中等强度思考，
+ *   不支持的模型会忽略此配置，无副作用。
  */
 export default defineAgent({
   // 顶层 await：模块加载时异步查库解析模型，再静态绑定到 EVE
   model: await getEveModel(),
   modelContextWindowTokens: 128_000, // 显式声明上下文窗口，跳过远程元数据查询
+  reasoning: "medium", // 推理模型启用中等思考强度，非推理模型忽略
   compaction: {
     thresholdPercent: 0.75,
   },

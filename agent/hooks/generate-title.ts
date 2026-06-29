@@ -4,11 +4,20 @@
  * @module agent/hooks/generate-title
  */
 
-import { generateText } from "ai";
+import { generateText, Output } from "ai";
 import { defineHook } from "eve/hooks";
+import { z } from "zod";
 import { getTitleModel } from "@/lib/ai/providers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isUuid } from "../lib/types";
+
+/**
+ * 标题结构化输出 schema
+ * max(80) 留余量，最终落库前再 slice(0, 50) 兜底
+ */
+const titleSchema = z.object({
+  title: z.string().max(80),
+});
 
 /**
  * 会话标题生成 Hook
@@ -17,7 +26,8 @@ import { isUuid } from "../lib/types";
  * 使用 getTitleModel(userId) 获取标题生成模型。
  * 标题生成失败时保留默认标题（"New Chat"），不影响主流程。
  *
- * 使用 try-catch 防止失败影响主流程。
+ * AI SDK 7 正式支持 Output.* 结构化输出与 maxOutputTokens，
+ * 替代旧版"通过 prompt 约束长度"的临时方案。
  */
 export default defineHook({
   events: {
@@ -46,15 +56,17 @@ export default defineHook({
         // 获取标题生成模型
         const titleModel = await getTitleModel(userId);
 
-        // 生成标题（使用简单 prompt）
-        // AI SDK 7 beta 不支持 maxTokens，通过 prompt 约束长度
-        const { text } = await generateText({
+        // 生成标题：使用 Output.* 结构化输出 + 显式 maxOutputTokens
+        const { output } = await generateText({
           model: titleModel,
           prompt:
             "Generate a short, concise title (max 50 chars) for a new chat session. Just output the title, nothing else.",
+          output: Output.object({ schema: titleSchema }),
+          maxOutputTokens: 100,
         });
 
-        const title = text.trim().slice(0, 50) || "New Chat";
+        // 结构化输出可能为空（模型拒答/截断），兜底默认标题
+        const title = output?.title?.trim().slice(0, 50) || "New Chat";
 
         // 更新数据库中的标题
         const supabase = createAdminClient();

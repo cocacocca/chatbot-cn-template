@@ -25,14 +25,15 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
   onCreateDocument: async ({ title, dataStream, modelId, session }) => {
     let draftContent = "";
 
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
       system: `${sheetPrompt}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
       prompt: title,
+      maxOutputTokens: 8192,
     });
 
     // 消费流：将文本增量累积并写入 dataStream
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
         dataStream.write({
@@ -55,13 +56,14 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
   }) => {
     let draftContent = "";
 
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
       system: `${getUpdateDocumentPrompt(document.content, "sheet")}\n\nOutput ONLY the raw CSV data. No explanations, no markdown fences.`,
       prompt: description,
+      maxOutputTokens: 8192,
     });
 
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
         dataStream.write({

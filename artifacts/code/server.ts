@@ -37,14 +37,15 @@ export const codeDocumentHandler = createDocumentHandler<"code">({
   onCreateDocument: async ({ title, dataStream, modelId, session }) => {
     let draftContent = "";
 
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
       system: `${codePrompt}\n\nOutput ONLY the code. No explanations, no markdown fences, no wrapping.`,
       prompt: title,
+      maxOutputTokens: 8192,
     });
 
     // 消费流：将文本增量写入 dataStream，并实时去除围栏
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
         dataStream.write({
@@ -67,13 +68,14 @@ export const codeDocumentHandler = createDocumentHandler<"code">({
   }) => {
     let draftContent = "";
 
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
       system: `${getUpdateDocumentPrompt(document.content, "code")}\n\nOutput ONLY the complete updated code. No explanations, no markdown fences, no wrapping.`,
       prompt: description,
+      maxOutputTokens: 8192,
     });
 
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
         dataStream.write({

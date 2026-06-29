@@ -19,16 +19,17 @@ export const textDocumentHandler = createDocumentHandler<"text">({
   onCreateDocument: async ({ title, dataStream, modelId, session }) => {
     let draftContent = "";
 
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
       system:
         "Write about the given topic. Markdown is supported. Use headings wherever appropriate.",
       experimental_transform: smoothStream({ chunking: "word" }),
       prompt: title,
+      maxOutputTokens: 8192,
     });
 
     // 消费流：将文本增量逐字写入 dataStream
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
         dataStream.write({
@@ -51,14 +52,15 @@ export const textDocumentHandler = createDocumentHandler<"text">({
   }) => {
     let draftContent = "";
 
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel(modelId, session.user.id),
       system: getUpdateDocumentPrompt(document.content, "text"),
       experimental_transform: smoothStream({ chunking: "word" }),
       prompt: description,
+      maxOutputTokens: 8192,
     });
 
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
         dataStream.write({

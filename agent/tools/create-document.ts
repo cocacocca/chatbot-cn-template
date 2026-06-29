@@ -85,15 +85,17 @@ export default defineTool({
     const userId = ctx.session.auth.current?.principalId;
 
     // 流式生成完整内容：按 kind 选择系统 prompt
+    // 使用 stream（AI SDK 7 轻量 API，仅文本流）替代 fullStream
     let draftContent = "";
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel("default", userId),
       system: getCreateSystemPrompt(kind),
       prompt: title,
+      maxOutputTokens: 8192,
     });
 
     // 消费流：累积文本增量，得到完整内容
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
       }

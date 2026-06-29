@@ -55,6 +55,7 @@ export default defineTool({
       system:
         "You are a writing assistant. Given a piece of writing, offer up to 5 suggestions to improve it. Each suggestion must contain full sentences, not just individual words. Describe what changed and why.",
       prompt: document.content,
+      maxOutputTokens: 2048,
       output: Output.array({
         element: z.object({
           originalSentence: z.string().describe("The original sentence"),

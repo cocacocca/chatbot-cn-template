@@ -87,15 +87,17 @@ export default defineTool({
     }
 
     // 流式生成重写后的完整内容
+    // 使用 stream（AI SDK 7 轻量 API，仅文本流）替代 fullStream
     let draftContent = "";
-    const { fullStream } = streamText({
+    const { stream } = streamText({
       model: await getLanguageModel("default", userId),
       system: getUpdateSystemPrompt(document, description),
       prompt: description,
+      maxOutputTokens: 8192,
     });
 
     // 消费流：累积文本增量
-    for await (const delta of fullStream) {
+    for await (const delta of stream) {
       if (delta.type === "text-delta") {
         draftContent += delta.text;
       }
