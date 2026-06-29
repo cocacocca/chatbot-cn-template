@@ -14,16 +14,17 @@
  *
  *   注意：EVE 主对话模型是进程内全局唯一、启动时绑定的，无法按用户切换。
  *   在 /settings 修改模型后需重启 dev server 让 agent 模块重新加载绑定。
+ *
+ *   性能优化：getEveModel() 仅执行一次 DB 查询（getAllGlobalModelConfigs），
+ *   在内存中过滤 is_default，避免"先查默认、再查全部"的两次查询开销。
+ *
  * @module agent/lib/model
  */
 
 import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import type { ModelConfig } from "@/lib/ai/models-db";
-import {
-  getAllGlobalModelConfigs,
-  getGlobalDefaultModelConfig,
-} from "@/lib/ai/models-db";
+import { getAllGlobalModelConfigs } from "@/lib/ai/models-db";
 
 /**
  * 根据 ModelConfig 创建 OpenAI 兼容实例。
@@ -72,6 +73,9 @@ function tryCreateEnvFallbackModel(): LanguageModel | null {
  * 3. .env.local 的 OPENAI_*（首次启动引导）
  * 4. 以上都不可用 → 抛出清晰错误，指引配置入口
  *
+ * 性能：仅执行一次 DB 查询（getAllGlobalModelConfigs），在内存中过滤 is_default，
+ * 避免原实现"先查 getGlobalDefaultModelConfig、再查 getAllGlobalModelConfigs"的两次查询。
+ *
  * 始终返回 provider 实例（external 路由，直连外部 API），绝不返回字符串。
  * 调用方需用顶层 await（ESM）等待异步查库完成。
  *
@@ -80,14 +84,16 @@ function tryCreateEnvFallbackModel(): LanguageModel | null {
  */
 export async function getEveModel(): Promise<LanguageModel> {
   try {
+    // 单次查询获取全部全局模型配置，内存中过滤默认模型
+    const allConfigs = await getAllGlobalModelConfigs();
+
     // 1. 优先全局默认模型
-    const defaultConfig = await getGlobalDefaultModelConfig();
+    const defaultConfig = allConfigs.find((c) => c.isDefault);
     if (defaultConfig?.apiKey) {
       return createModelFromConfig(defaultConfig);
     }
 
-    // 2. 无默认模型时，取数据库第一条作为兜底（避免有模型却用不上）
-    const allConfigs = await getAllGlobalModelConfigs();
+    // 2. 无默认模型或默认模型无 apiKey 时，取第一条有 apiKey 的作为兜底
     const firstWithKey = allConfigs.find((c) => c.apiKey);
     if (firstWithKey) {
       console.warn(
