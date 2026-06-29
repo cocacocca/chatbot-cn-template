@@ -20,7 +20,7 @@ const openai = createOpenAI({
  * - timeoutMs: 超时时间 60 秒
  */
 export default defineEvalConfig({
-  judge: { model: openai("gpt-4o-mini") },
+  judge: { model: openai.chat("gpt-4o-mini") },
   maxConcurrency: 5,
   timeoutMs: 60_000,
 });

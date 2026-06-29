@@ -374,7 +374,8 @@ export async function PUT(request: Request) {
         description: extractDescription(content),
       },
     });
-  } catch (_error) {
+  } catch (error) {
+    console.error("[admin/skills] Failed to update skill:", error);
     return Response.json({ error: "Failed to update skill" }, { status: 500 });
   }
 }

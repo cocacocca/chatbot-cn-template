@@ -183,7 +183,8 @@ export async function GET() {
     );
 
     return Response.json({ connections });
-  } catch (_error) {
+  } catch (error) {
+    console.error("[admin/connections] Failed to read connections:", error);
     return Response.json(
       { error: "Failed to read connections" },
       { status: 500 }
@@ -356,7 +357,8 @@ export async function PUT(request: Request) {
         content,
       },
     });
-  } catch (_error) {
+  } catch (error) {
+    console.error("[admin/connections] Failed to update connection:", error);
     return Response.json(
       { error: "Failed to update connection" },
       { status: 500 }

@@ -11,9 +11,10 @@ import { getEveModel } from "../../lib/model";
  * Researcher Subagent
  *
  * 专门用于研究不明确的问题。parent agent 通过内置 `agent` 工具委托任务。
- * 拥有独立的 instructions、tools 和 skills，不继承 root agent 的配置。
- * model 复用 root agent 的 OpenAI 兼容实例（external 路由，直连外部 API），
- * 不经过 AI Gateway。
+ * 拥有独立的 description 与 tools（tools 由 tools/ 子目录按约定自动发现），
+ * 不继承 root agent 的配置。
+ * model 通过同一工厂函数 getEveModel() 创建（配置与 root agent 一致，
+ * external 路由直连外部 API），不经过 AI Gateway。
  */
 export default defineAgent({
   description:

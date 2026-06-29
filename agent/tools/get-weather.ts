@@ -33,8 +33,9 @@ async function geocodeCity(
       latitude: result.latitude,
       longitude: result.longitude,
     };
-  } catch {
+  } catch (err) {
     // 网络或解析异常时返回 null，由调用方处理
+    console.error("[get-weather] geocode failed:", err);
     return null;
   }
 }

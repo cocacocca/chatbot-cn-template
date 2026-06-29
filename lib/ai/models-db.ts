@@ -66,14 +66,14 @@ function toModelConfig(row: ModelConfigRow): ModelConfig {
 }
 
 /**
- * 查询指定用户的全部模型配置（客户端可调用版本）。
+ * 查询指定用户的全部模型配置（返回脱敏数据供客户端使用的版本）。
  * 使用 admin client（绕过 RLS）+ 应用层 user_id 过滤模拟用户隔离；
  * 返回前对 api_key 脱敏（置为 null），避免敏感信息泄露到客户端。
  *
  * @param userId 用户 id
  * @returns 脱敏后的模型配置列表（按创建时间升序）
  */
-// 客户端可调用，返回时脱敏 api_key
+// 供客户端使用，返回时脱敏 api_key（函数本身为 server-only，不可在客户端直接 import）
 // 使用 admin client + 应用层 user_id 过滤
 export async function getAllModelConfigsForClient(userId: string) {
   const supabase = createAdminClient();

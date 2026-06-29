@@ -62,7 +62,13 @@ type MultimodalSendMessage =
     }) => Promise<void>)
   | (() => Promise<void>);
 
-/** MultimodalInput 组件使用的 status 类型 */
+/**
+ * MultimodalInput 组件使用的 status 类型
+ *
+ * 注意：项目自定义 UIStatus，非 AI SDK 7 的 ChatStatus。
+ * use-active-chat.tsx 将 AI SDK 的 'submitted' | 'streaming' 统一映射为 'in_progress'，
+ * 表示"进行中"状态。各组件接收的 status 均为映射后的值。
+ */
 type MultimodalStatus = "ready" | "submitted" | "in_progress" | "error";
 
 /** MultimodalInput 组件使用的 setMessages 类型 */

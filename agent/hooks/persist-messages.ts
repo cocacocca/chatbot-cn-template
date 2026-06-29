@@ -16,7 +16,7 @@ import { generateUUID, isUuid } from "../lib/types";
  * @param supabase - 已实例化的 supabase admin client
  * @param sessionId - 会话 ID（对应 cct_chat.id）
  * @param userId - 用户 UUID
- * @throws {PostgrestError} upsert 失败时抛出，触发 turn.failed
+ * @throws {PostgrestError} upsert 失败时抛出，由 EVE 框架捕获处理
  */
 async function ensureChat(
   supabase: ReturnType<typeof createAdminClient>,

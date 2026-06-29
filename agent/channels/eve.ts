@@ -55,6 +55,9 @@ function supabaseAuth(): AuthFn<Request> {
         principalType: "user",
       };
     } catch (error) {
+      // fail-open 策略：JWT 验证异常（如 Supabase 短暂不可用）时返回 null，
+      // 让 EVE 尝试下一个认证策略（如 localDev/vercelOidc），避免锁死所有用户。
+      // 与 admin-guard.ts 的 fail-closed（error → 拒绝）策略不同，此处为有意取舍。
       console.error("[supabaseAuth] Error verifying user:", error);
       return null;
     }
