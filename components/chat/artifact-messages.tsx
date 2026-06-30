@@ -1,22 +1,23 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
-import equal from "fast-deep-equal";
+/** @file Artifact 视图中的消息列表组件，显示会话消息并处理滚动与加载状态 */
 import { AnimatePresence, motion } from "framer-motion";
 import { memo } from "react";
-import { useMessages } from "@/hooks/use-messages";
-import type { Vote } from "@/lib/db/schema";
+import { useScrollToBottom } from "@/hooks/chat/use-scroll-to-bottom";
 import type { ChatMessage } from "@/lib/types";
 import type { UIArtifact } from "./artifact";
 import { PreviewMessage, ThinkingMessage } from "./message";
 
+/** ArtifactMessages 组件属性，从 ActiveChatContextValue 中提取相关字段 */
 type ArtifactMessagesProps = {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
   chatId: string;
-  status: UseChatHelpers<ChatMessage>["status"];
-  votes: Vote[] | undefined;
+  status: "ready" | "submitted" | "in_progress" | "error";
   messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  isReadonly: boolean;
+  setMessages: (messages: ChatMessage[]) => void;
+  regenerate: () => Promise<void>;
   artifactStatus: UIArtifact["status"];
 };
 
@@ -24,21 +25,16 @@ function PureArtifactMessages({
   addToolApprovalResponse,
   chatId,
   status,
-  votes,
   messages,
   setMessages,
   regenerate,
-  isReadonly,
 }: ArtifactMessagesProps) {
   const {
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
     onViewportEnter,
     onViewportLeave,
-    hasSentMessage,
-  } = useMessages({
-    status,
-  });
+  } = useScrollToBottom();
 
   return (
     <div
@@ -49,20 +45,14 @@ function PureArtifactMessages({
         <PreviewMessage
           addToolApprovalResponse={addToolApprovalResponse}
           chatId={chatId}
-          isLoading={status === "streaming" && index === messages.length - 1}
-          isReadonly={isReadonly}
+          isLoading={status === "in_progress" && index === messages.length - 1}
           key={message.id}
           message={message}
           regenerate={regenerate}
           requiresScrollPadding={
-            hasSentMessage && index === messages.length - 1
+            messages.length > 0 && index === messages.length - 1
           }
           setMessages={setMessages}
-          vote={
-            votes
-              ? votes.find((vote) => vote.messageId === message.id)
-              : undefined
-          }
         />
       ))}
 
@@ -103,9 +93,6 @@ function areEqual(
     return false;
   }
   if (prevProps.messages.length !== nextProps.messages.length) {
-    return false;
-  }
-  if (!equal(prevProps.votes, nextProps.votes)) {
     return false;
   }
 

@@ -1,6 +1,5 @@
 import { memo } from "react";
-import { toast } from "sonner";
-import { useArtifact } from "@/hooks/use-artifact";
+import { useArtifact } from "@/hooks/data/use-artifact";
 import type { ArtifactKind } from "./artifact";
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from "./icons";
 
@@ -23,25 +22,15 @@ const getActionText = (
 type DocumentToolResultProps = {
   type: "create" | "update" | "request-suggestions";
   result: { id: string; title: string; kind: ArtifactKind };
-  isReadonly: boolean;
 };
 
-function PureDocumentToolResult({
-  type,
-  result,
-  isReadonly,
-}: DocumentToolResultProps) {
+function PureDocumentToolResult({ type, result }: DocumentToolResultProps) {
   const { setArtifact } = useArtifact();
 
   return (
     <button
       className="flex w-fit cursor-pointer flex-row items-center gap-2 rounded-xl border bg-background px-3 py-2"
       onClick={(event) => {
-        if (isReadonly) {
-          toast.error("暂不支持查看共享对话中的文件。");
-          return;
-        }
-
         const rect = event.currentTarget.getBoundingClientRect();
 
         const boundingBox = {
@@ -87,25 +76,15 @@ type DocumentToolCallProps = {
     | { title: string; kind: ArtifactKind }
     | { id: string; description: string }
     | { documentId: string };
-  isReadonly: boolean;
 };
 
-function PureDocumentToolCall({
-  type,
-  args,
-  isReadonly,
-}: DocumentToolCallProps) {
+function PureDocumentToolCall({ type, args }: DocumentToolCallProps) {
   const { setArtifact } = useArtifact();
 
   return (
     <button
       className="cursor pointer flex w-fit flex-row items-start justify-between gap-3 rounded-xl border px-3 py-2"
       onClick={(event) => {
-        if (isReadonly) {
-          toast.error("暂不支持查看共享对话中的文件。");
-          return;
-        }
-
         const rect = event.currentTarget.getBoundingClientRect();
 
         const boundingBox = {

@@ -9,10 +9,10 @@ import {
   useMemo,
   useRef,
 } from "react";
-import useSWR from "swr";
-import { useArtifact } from "@/hooks/use-artifact";
-import type { Document } from "@/lib/db/schema";
-import { cn, fetcher } from "@/lib/utils";
+import { useArtifact } from "@/hooks/data/use-artifact";
+import { useDocuments } from "@/hooks/data/use-documents";
+import type { Document } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import type { ArtifactKind, UIArtifact } from "./artifact";
 import { CodeEditor } from "./code-editor";
 import { InlineDocumentSkeleton } from "./document-skeleton";
@@ -27,7 +27,7 @@ import { ImageEditor } from "./image-editor";
 import { SpreadsheetEditor } from "./sheet-editor";
 import { Editor } from "./text-editor";
 
-type DocumentToolOutput = {
+export type DocumentToolOutput = {
   id: string;
   title: string;
   kind: ArtifactKind;
@@ -35,25 +35,15 @@ type DocumentToolOutput = {
 };
 
 type DocumentPreviewProps = {
-  isReadonly: boolean;
   result?: Partial<DocumentToolOutput>;
   args?: Partial<DocumentToolOutput> & { isUpdate?: boolean };
 };
 
-export function DocumentPreview({
-  isReadonly: _isReadonly,
-  result,
-  args,
-}: DocumentPreviewProps) {
+export function DocumentPreview({ result, args }: DocumentPreviewProps) {
   const { artifact, setArtifact } = useArtifact();
 
-  const { data: documents, isLoading: isDocumentsFetching } = useSWR<
-    Document[]
-  >(
-    result
-      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${result.id}`
-      : null,
-    fetcher
+  const { data: documents, isLoading: isDocumentsFetching } = useDocuments(
+    result ? (result.id ?? "") : ""
   );
 
   const previewDocument = useMemo(() => documents?.[0], [documents]);
@@ -107,7 +97,7 @@ export function DocumentPreview({
           kind: artifact.kind,
           content: artifact.content,
           id: artifact.documentId,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           userId: "noop",
         }
       : null;

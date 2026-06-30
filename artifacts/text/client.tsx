@@ -1,3 +1,4 @@
+/** @file 文本 Artifact 客户端定义，负责富文本编辑、Diff 视图、建议展示与版本切换 */
 import { toast } from "sonner";
 import { Artifact } from "@/components/chat/create-artifact";
 import { DiffView } from "@/components/chat/diffview";
@@ -11,9 +12,11 @@ import {
   UndoIcon,
 } from "@/components/chat/icons";
 import { Editor } from "@/components/chat/text-editor";
-import type { Suggestion } from "@/lib/db/schema";
-import { getSuggestions } from "../actions";
+import { getLatestDocument } from "@/lib/queries/client/document-queries";
+import { getSuggestions } from "@/lib/queries/client/suggestion-queries";
+import type { Suggestion } from "@/lib/types";
 
+/** 文本 Artifact 的元数据类型，保存写作建议列表 */
 type TextArtifactMetadata = {
   suggestions: Suggestion[];
 };
@@ -21,27 +24,34 @@ type TextArtifactMetadata = {
 export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
   kind: "text",
   description: "Useful for text content, like drafting essays and emails.",
+  // 初始化：拉取最新文档并加载建议列表
   initialize: async ({ documentId, setMetadata }) => {
-    const suggestions = await getSuggestions({ documentId });
-
-    setMetadata({
-      suggestions,
-    });
+    let suggestions: Suggestion[] = [];
+    try {
+      const latestDoc = await getLatestDocument(documentId);
+      suggestions = await getSuggestions(documentId, latestDoc.createdAt);
+    } catch (_error) {
+      // 文档不存在或查询失败时，使用空建议列表
+    }
+    setMetadata({ suggestions });
   },
+  // 处理流式数据：分别处理建议增量与文本增量
   onStreamPart: ({ streamPart, setMetadata, setArtifact }) => {
+    // 建议增量：追加到元数据 suggestions
     if (streamPart.type === "data-suggestion") {
       setMetadata((metadata) => {
         return {
-          suggestions: [...metadata.suggestions, streamPart.data],
+          suggestions: [...metadata.suggestions, streamPart.data as Suggestion],
         };
       });
     }
 
+    // 文本增量：追加到内容，并在 400~450 字符区间自动展示
     if (streamPart.type === "data-textDelta") {
       setArtifact((draftArtifact) => {
         return {
           ...draftArtifact,
-          content: draftArtifact.content + streamPart.data,
+          content: draftArtifact.content + (streamPart.data as string),
           isVisible:
             draftArtifact.status === "streaming" &&
             draftArtifact.content.length > 400 &&
@@ -53,6 +63,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       });
     }
   },
+  // 渲染内容：加载中显示骨架屏，diff 模式显示差异，否则显示编辑器
   content: ({
     mode,
     status,
@@ -68,6 +79,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       return <DocumentSkeleton artifactKind="text" />;
     }
 
+    // diff 模式：对比当前版本与上一版本
     if (mode === "diff") {
       const selectedContent = getDocumentContentById(currentVersionIndex);
       const prevContent =
@@ -93,6 +105,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
           suggestions={isCurrentVersion && metadata ? metadata.suggestions : []}
         />
 
+        {/* 存在建议时为侧边建议面板预留占位空间（移动端隐藏） */}
         {metadata?.suggestions && metadata.suggestions.length > 0 ? (
           <div className="h-dvh w-12 shrink-0 md:hidden" />
         ) : null}
@@ -106,6 +119,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("toggle");
       },
+      // 当前已是第一版时禁用查看变更
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
           return true;
@@ -120,6 +134,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("prev");
       },
+      // 当前已是第一版时禁用回退
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
           return true;
@@ -134,6 +149,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("next");
       },
+      // 当前已是最新版时禁用前进
       isDisabled: ({ isCurrentVersion }) => {
         if (isCurrentVersion) {
           return true;

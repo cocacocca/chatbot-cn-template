@@ -1,3 +1,4 @@
+/** @file 模型设置页面：管理用户自定义的 AI 模型配置（增删改查 + 连接测试） */
 "use client";
 
 import { AnimatePresence, motion, type Transition } from "framer-motion";
@@ -15,9 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useModels } from "@/hooks/use-models";
+import { useModels } from "@/hooks/data/use-models";
 import { cn } from "@/lib/utils";
 
+/** 模型表单状态 */
 type FormState = {
   id: string;
   name: string;
@@ -25,6 +27,7 @@ type FormState = {
   apiKey: string;
 };
 
+/** 空表单初始值 */
 const emptyForm: FormState = {
   id: "",
   name: "",
@@ -32,8 +35,10 @@ const emptyForm: FormState = {
   apiKey: "",
 };
 
+/** 弹簧动画过渡配置 */
 const spring: Transition = { type: "spring", damping: 25, stiffness: 300 };
 
+/** 上滑淡入动画配置 */
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
@@ -41,9 +46,14 @@ const fadeUp = {
   transition: spring,
 };
 
+/**
+ * 模型设置页面组件
+ * 提供模型列表展示、添加/编辑/删除操作，以及 API 连接测试。
+ */
 export default function SettingsPage() {
   const { models, isLoading, mutate } = useModels();
 
+  // 对话框与表单状态
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,10 +64,12 @@ export default function SettingsPage() {
     message: string;
   } | null>(null);
 
+  /** 使模型列表缓存失效，触发重新拉取 */
   function invalidateModels() {
     mutate();
   }
 
+  /** 打开「添加模型」对话框：重置表单与测试结果 */
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
@@ -65,6 +77,7 @@ export default function SettingsPage() {
     setDialogOpen(true);
   }
 
+  /** 打开「编辑模型」对话框：用现有模型数据填充表单 */
   function openEdit(model: (typeof models)[number]) {
     setEditingId(model.id);
     setForm({
@@ -77,6 +90,7 @@ export default function SettingsPage() {
     setDialogOpen(true);
   }
 
+  /** 测试 API 连接：调用 /api/models/test 验证 baseUrl 与 apiKey */
   async function handleTest() {
     if (!form.baseUrl || !form.apiKey) {
       toast.error("请先填写 Base URL 和 API Key");
@@ -101,12 +115,14 @@ export default function SettingsPage() {
     }
   }
 
+  /** 保存模型：根据 editingId 决定调用 PUT（更新）或 POST（新建） */
   async function handleSave() {
     if (!form.id || !form.name || !form.baseUrl || !form.apiKey) {
       toast.error("所有字段均为必填项");
       return;
     }
 
+    // 从模型 ID 中提取 provider（如 "deepseek/deepseek-chat" → "deepseek"）
     const provider = form.id.split("/")[0] || "";
     const payload = {
       ...form,
@@ -143,6 +159,7 @@ export default function SettingsPage() {
     }
   }
 
+  /** 确认删除模型：调用 DELETE /api/models?id=... */
   async function confirmDelete() {
     if (!deleteId) {
       return;
@@ -192,8 +209,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-2xl font-semibold">模型设置</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              配置用于聊天的 AI 模型，每个模型可设置独立的 API Key 和 Base
-              URL。
+              配置用于聊天的 AI 模型，每个模型可设置独立的 API Key 和 Base URL。
             </p>
           </div>
           <Button onClick={openCreate} size="sm">

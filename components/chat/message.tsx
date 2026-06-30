@@ -1,6 +1,5 @@
 "use client";
-import type { UseChatHelpers } from "@ai-sdk/react";
-import type { Vote } from "@/lib/db/schema";
+/** @file 消息预览组件，显示单条消息的内容、附件和工具调用结果 */
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { MessageContent, MessageResponse } from "../ai-elements/message";
@@ -12,43 +11,44 @@ import {
   ToolInput,
   ToolOutput,
 } from "../ai-elements/tool";
-import { useDataStream } from "./data-stream-provider";
+import type { ArtifactKind } from "./artifact";
 import { DocumentToolResult } from "./document";
-import { DocumentPreview } from "./document-preview";
+import { DocumentPreview, type DocumentToolOutput } from "./document-preview";
 import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageReasoning } from "./message-reasoning";
 import { PreviewAttachment } from "./preview-attachment";
-import { Weather } from "./weather";
+import { Weather, type WeatherAtLocation } from "./weather";
+
+/** PreviewMessage 组件属性，从 ActiveChatContextValue 中提取相关字段 */
+type PreviewMessageProps = {
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
+  chatId: string;
+  message: ChatMessage;
+  isLoading: boolean;
+  setMessages: (messages: ChatMessage[]) => void;
+  regenerate: () => Promise<void>;
+  requiresScrollPadding: boolean;
+  onEdit?: (message: ChatMessage) => void;
+};
 
 const PurePreviewMessage = ({
   addToolApprovalResponse,
-  chatId,
+  chatId: _chatId,
   message,
-  vote,
   isLoading,
   setMessages: _setMessages,
   regenerate: _regenerate,
-  isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
   onEdit,
-}: {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
-  chatId: string;
-  message: ChatMessage;
-  vote: Vote | undefined;
-  isLoading: boolean;
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  isReadonly: boolean;
-  requiresScrollPadding: boolean;
-  onEdit?: (message: ChatMessage) => void;
-}) => {
+}: PreviewMessageProps) => {
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file"
   );
-
-  useDataStream();
 
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -128,7 +128,7 @@ const PurePreviewMessage = ({
       );
     }
 
-    if (type === "tool-getWeather") {
+    if (type === "tool-get-weather") {
       const { toolCallId, state } = part;
       const approvalId = (part as { approval?: { id: string } }).approval?.id;
       const isDenied =
@@ -141,7 +141,7 @@ const PurePreviewMessage = ({
       if (state === "output-available") {
         return (
           <div className={widthClass} key={toolCallId}>
-            <Weather weatherAtLocation={part.output} />
+            <Weather weatherAtLocation={part.output as WeatherAtLocation} />
           </div>
         );
       }
@@ -150,7 +150,7 @@ const PurePreviewMessage = ({
         return (
           <div className={widthClass} key={toolCallId}>
             <Tool className="w-full" defaultOpen={true}>
-              <ToolHeader state="output-denied" type="tool-getWeather" />
+              <ToolHeader state="output-denied" type="tool-get-weather" />
               <ToolContent>
                 <div className="px-4 py-3 text-muted-foreground text-sm">
                   天气查询已被拒绝。
@@ -165,7 +165,7 @@ const PurePreviewMessage = ({
         return (
           <div className={widthClass} key={toolCallId}>
             <Tool className="w-full" defaultOpen={true}>
-              <ToolHeader state={state} type="tool-getWeather" />
+              <ToolHeader state={state} type="tool-get-weather" />
               <ToolContent>
                 <ToolInput input={part.input} />
               </ToolContent>
@@ -177,7 +177,7 @@ const PurePreviewMessage = ({
       return (
         <div className={widthClass} key={toolCallId}>
           <Tool className="w-full" defaultOpen={true}>
-            <ToolHeader state={state} type="tool-getWeather" />
+            <ToolHeader state={state} type="tool-get-weather" />
             <ToolContent>
               {(state === "input-available" ||
                 state === "approval-requested") && (
@@ -189,9 +189,9 @@ const PurePreviewMessage = ({
                     className="rounded-md px-3 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
                     onClick={() => {
                       addToolApprovalResponse({
-                        id: approvalId,
+                        messageId: message.id,
+                        approvalId,
                         approved: false,
-                        reason: "用户拒绝了天气查询",
                       });
                     }}
                     type="button"
@@ -202,7 +202,8 @@ const PurePreviewMessage = ({
                     className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground text-sm transition-colors hover:bg-primary/90"
                     onClick={() => {
                       addToolApprovalResponse({
-                        id: approvalId,
+                        messageId: message.id,
+                        approvalId,
                         approved: true,
                       });
                     }}
@@ -218,10 +219,14 @@ const PurePreviewMessage = ({
       );
     }
 
-    if (type === "tool-createDocument") {
+    if (type === "tool-create-document") {
       const { toolCallId } = part;
 
-      if (part.output && "error" in part.output) {
+      if (
+        part.output &&
+        typeof part.output === "object" &&
+        "error" in part.output
+      ) {
         return (
           <div
             className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
@@ -234,17 +239,20 @@ const PurePreviewMessage = ({
 
       return (
         <DocumentPreview
-          isReadonly={isReadonly}
           key={toolCallId}
-          result={part.output}
+          result={part.output as Partial<DocumentToolOutput>}
         />
       );
     }
 
-    if (type === "tool-updateDocument") {
+    if (type === "tool-update-document") {
       const { toolCallId } = part;
 
-      if (part.output && "error" in part.output) {
+      if (
+        part.output &&
+        typeof part.output === "object" &&
+        "error" in part.output
+      ) {
         return (
           <div
             className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
@@ -258,15 +266,17 @@ const PurePreviewMessage = ({
       return (
         <div className="relative" key={toolCallId}>
           <DocumentPreview
-            args={{ ...part.output, isUpdate: true }}
-            isReadonly={isReadonly}
-            result={part.output}
+            args={{
+              ...(part.output as Partial<DocumentToolOutput>),
+              isUpdate: true,
+            }}
+            result={part.output as Partial<DocumentToolOutput>}
           />
         </div>
       );
     }
 
-    if (type === "tool-requestSuggestions") {
+    if (type === "tool-request-suggestions") {
       const { toolCallId, state } = part;
 
       return (
@@ -275,21 +285,28 @@ const PurePreviewMessage = ({
           defaultOpen={true}
           key={toolCallId}
         >
-          <ToolHeader state={state} type="tool-requestSuggestions" />
+          <ToolHeader state={state} type="tool-request-suggestions" />
           <ToolContent>
             {state === "input-available" && <ToolInput input={part.input} />}
             {state === "output-available" && (
               <ToolOutput
                 errorText={undefined}
                 output={
+                  part.output &&
+                  typeof part.output === "object" &&
                   "error" in part.output ? (
                     <div className="rounded border p-2 text-red-500">
                       错误：{String(part.output.error)}
                     </div>
                   ) : (
                     <DocumentToolResult
-                      isReadonly={isReadonly}
-                      result={part.output}
+                      result={
+                        part.output as {
+                          id: string;
+                          title: string;
+                          kind: ArtifactKind;
+                        }
+                      }
                       type="request-suggestions"
                     />
                   )
@@ -304,14 +321,12 @@ const PurePreviewMessage = ({
     return null;
   });
 
-  const actions = !isReadonly && (
+  const actions = (
     <MessageActions
-      chatId={chatId}
       isLoading={isLoading}
       key={`action-${message.id}`}
       message={message}
       onEdit={onEdit ? () => onEdit(message) : undefined}
-      vote={vote}
     />
   );
 

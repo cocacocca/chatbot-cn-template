@@ -1,0 +1,2 @@
+-- 默认模型从 OPENAI_ 环境变量 fallback，无需 seed。
+-- 如需预置模型，请手动在 /settings 添加。

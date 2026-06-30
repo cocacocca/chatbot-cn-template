@@ -1,6 +1,5 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file Artifact 视图组件，显示文档/代码/表格等 artifact 内容 */
 import { formatDistance } from "date-fns";
-import equal from "fast-deep-equal";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   type Dispatch,
@@ -11,23 +10,22 @@ import {
   useRef,
   useState,
 } from "react";
-import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { codeArtifact } from "@/artifacts/code/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
-import { useArtifact } from "@/hooks/use-artifact";
-import type { Document, Vote } from "@/lib/db/schema";
-import type { Attachment, ChatMessage } from "@/lib/types";
-import { fetcher } from "@/lib/utils";
+import { useArtifact } from "@/hooks/data/use-artifact";
+import { useDocuments } from "@/hooks/data/use-documents";
+import { saveDocument } from "@/lib/queries/client/document-queries";
+import { createClient } from "@/lib/supabase/client";
+import type { Attachment, ChatMessage, Document } from "@/lib/types";
 import { useSidebar } from "../ui/sidebar";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { LoaderIcon } from "./icons";
 import { Toolbar } from "./toolbar";
 import { VersionFooter } from "./version-footer";
-import type { VisibilityType } from "./visibility-selector";
 
 export const artifactDefinitions = [
   textArtifact,
@@ -52,6 +50,30 @@ export type UIArtifact = {
   };
 };
 
+/** Artifact 组件属性，从 ActiveChatContextValue 中提取相关字段 */
+type ArtifactProps = {
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
+  chatId: string;
+  input: string;
+  setInput: Dispatch<SetStateAction<string>>;
+  status: "ready" | "submitted" | "in_progress" | "error";
+  stop: () => void;
+  attachments: Attachment[];
+  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+  messages: ChatMessage[];
+  setMessages: (messages: ChatMessage[]) => void;
+  sendMessage: (message: {
+    role: "user";
+    parts: Array<{ type: "text"; text: string }>;
+  }) => Promise<void>;
+  regenerate: () => Promise<void>;
+  selectedModelId: string;
+};
+
 function PureArtifact({
   addToolApprovalResponse: _addToolApprovalResponse,
   chatId: _chatId,
@@ -65,39 +87,18 @@ function PureArtifact({
   messages: _messages,
   setMessages,
   regenerate: _regenerate,
-  votes: _votes,
-  isReadonly: _isReadonly,
-  selectedVisibilityType: _selectedVisibilityType,
   selectedModelId: _selectedModelId,
-}: {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
-  chatId: string;
-  input: string;
-  setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
-  stop: UseChatHelpers<ChatMessage>["stop"];
-  attachments: Attachment[];
-  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
-  messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  votes: Vote[] | undefined;
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  isReadonly: boolean;
-  selectedVisibilityType: VisibilityType;
-  selectedModelId: string;
-}) {
+}: ArtifactProps) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
   const {
     data: documents,
     isLoading: isDocumentsFetching,
     mutate: mutateDocuments,
-  } = useSWR<Document[]>(
+  } = useDocuments(
     artifact.documentId !== "init" && artifact.status !== "streaming"
-      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`
-      : null,
-    fetcher
+      ? artifact.documentId
+      : ""
   );
 
   const [mode, setMode] = useState<"edit" | "diff">("edit");
@@ -145,16 +146,13 @@ function PureArtifact({
     mutateDocuments();
   }, [mutateDocuments]);
 
-  const { mutate } = useSWRConfig();
-
   const handleContentChange = useCallback(
     (updatedContent: string) => {
       if (!artifact) {
         return;
       }
 
-      mutate<Document[]>(
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
+      mutateDocuments(
         async (currentDocuments) => {
           if (!currentDocuments) {
             return [];
@@ -172,18 +170,21 @@ function PureArtifact({
             return currentDocuments;
           }
 
-          await fetch(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
-            {
-              method: "POST",
-              body: JSON.stringify({
-                title: artifact.title,
-                content: updatedContent,
-                kind: artifact.kind,
-                isManualEdit: true,
-              }),
-            }
-          );
+          const supabase = createClient();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error("User not authenticated");
+          }
+
+          await saveDocument({
+            id: artifact.documentId,
+            userId: user.id,
+            content: updatedContent,
+            kind: artifact.kind,
+            title: artifact.title,
+          });
 
           setIsContentDirty(false);
 
@@ -196,7 +197,7 @@ function PureArtifact({
         { revalidate: false }
       );
     },
-    [artifact, mutate]
+    [artifact, mutateDocuments]
   );
 
   const latestContentRef = useRef<string>("");
@@ -465,16 +466,10 @@ export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
   if (prevProps.status !== nextProps.status) {
     return false;
   }
-  if (!equal(prevProps.votes, nextProps.votes)) {
-    return false;
-  }
   if (prevProps.input !== nextProps.input) {
     return false;
   }
   if (prevProps.messages.length !== nextProps.messages.length) {
-    return false;
-  }
-  if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
     return false;
   }
 

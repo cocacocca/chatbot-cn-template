@@ -80,7 +80,7 @@ const CloudIcon = ({ size = 24 }: { size?: number }) => (
   </svg>
 );
 
-type WeatherAtLocation = {
+export type WeatherAtLocation = {
   latitude: number;
   longitude: number;
   generationtime_ms: number;
@@ -283,6 +283,19 @@ export function Weather({
 }: {
   weatherAtLocation?: WeatherAtLocation;
 }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   if (
     !weatherAtLocation?.hourly?.temperature_2m ||
     !weatherAtLocation?.current?.temperature_2m ||
@@ -303,19 +316,6 @@ export function Weather({
     start: new Date(weatherAtLocation.daily.sunrise[0]),
     end: new Date(weatherAtLocation.daily.sunset[0]),
   });
-
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const hoursToShow = isMobile ? 5 : 6;
 

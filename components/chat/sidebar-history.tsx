@@ -3,7 +3,6 @@
 import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import type { User } from "next-auth";
 import { useState } from "react";
 import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
@@ -24,8 +23,10 @@ import {
   SidebarMenu,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { Chat } from "@/lib/db/schema";
-import { fetcher } from "@/lib/utils";
+import { useUser } from "@/hooks/auth/use-user";
+import { deleteChat } from "@/lib/queries/client/chat-queries";
+import { createClient } from "@/lib/supabase/client";
+import type { Chat } from "@/lib/types";
 import { LoaderIcon } from "./icons";
 import { ChatItem } from "./sidebar-history-item";
 
@@ -42,7 +43,7 @@ export type ChatHistory = {
   hasMore: boolean;
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 const groupChatsByDate = (chats: Chat[]): GroupedChats => {
   const now = new Date();
@@ -77,31 +78,74 @@ const groupChatsByDate = (chats: Chat[]): GroupedChats => {
   );
 };
 
+// 使用稳定的字符串 key 以兼容 SWR infinite 的 cache.get 调用
+const HISTORY_KEY = "chat-history-infinite";
+
 export function getChatHistoryPaginationKey(
   pageIndex: number,
-  previousPageData: ChatHistory
-) {
+  previousPageData: ChatHistory | null
+): string | null {
   if (previousPageData && previousPageData.hasMore === false) {
     return null;
   }
 
   if (pageIndex === 0) {
-    return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history?limit=${PAGE_SIZE}`;
+    return `${HISTORY_KEY}?page=0`;
   }
 
-  const firstChatFromPage = previousPageData.chats.at(-1);
+  const firstChatFromPage = previousPageData?.chats.at(-1);
 
   if (!firstChatFromPage) {
     return null;
   }
 
-  return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history?ending_before=${firstChatFromPage.id}&limit=${PAGE_SIZE}`;
+  return `${HISTORY_KEY}?ending_before=${firstChatFromPage.id}`;
 }
 
-export function SidebarHistory({ user }: { user: User | undefined }) {
+async function fetchChatHistoryPage(key: string): Promise<ChatHistory> {
+  const supabase = createClient();
+  const params = new URLSearchParams(key.split("?")[1] ?? "");
+  const endingBefore = params.get("ending_before");
+
+  let query = supabase
+    .from("cct_chat")
+    .select("id, title, created_at")
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE + 1);
+
+  if (endingBefore) {
+    const { data: cursorChat } = await supabase
+      .from("cct_chat")
+      .select("created_at")
+      .eq("id", endingBefore)
+      .single();
+
+    if (cursorChat) {
+      query = query.lt("created_at", cursorChat.created_at);
+    }
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  const hasMore = (data?.length ?? 0) > PAGE_SIZE;
+  const chats = (data ?? []).slice(0, PAGE_SIZE).map((row) => ({
+    id: row.id,
+    title: row.title,
+    createdAt: row.created_at,
+  }));
+
+  return { chats, hasMore };
+}
+
+export function SidebarHistory() {
   const { setOpenMobile } = useSidebar();
   const pathname = usePathname();
   const id = pathname?.startsWith("/chat/") ? pathname.split("/")[2] : null;
+  const { user } = useUser();
 
   const {
     data: paginatedChatHistories,
@@ -111,7 +155,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     mutate,
   } = useSWRInfinite<ChatHistory>(
     user ? getChatHistoryPaginationKey : () => null,
-    fetcher,
+    fetchChatHistoryPage,
     { fallbackData: [], revalidateOnFocus: false }
   );
 
@@ -127,7 +171,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     ? paginatedChatHistories.every((page) => page.chats.length === 0)
     : false;
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const chatToDelete = deleteId;
     const isCurrentChat = pathname === `/chat/${chatToDelete}`;
 
@@ -142,9 +186,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
         if (chatHistories) {
           return chatHistories.map((chatHistory) => ({
             ...chatHistory,
-            chats: chatHistory.chats.filter(
-              (chat) => chat.id !== chatToDelete
-            ),
+            chats: chatHistory.chats.filter((chat) => chat.id !== chatToDelete),
           }));
         }
         return chatHistories;
@@ -152,12 +194,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       { revalidate: false }
     );
 
-    fetch(
-      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat?id=${chatToDelete}`,
-      { method: "DELETE" }
-    );
-
-    toast.success("对话已删除");
+    try {
+      await deleteChat(chatToDelete as string);
+      toast.success("对话已删除");
+    } catch (_error) {
+      toast.error("删除对话失败");
+    }
   };
 
   if (!user) {

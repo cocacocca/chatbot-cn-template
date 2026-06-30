@@ -1,3 +1,4 @@
+/** @file 代码 Artifact 客户端定义，负责代码编辑、Pyodide 执行与控制台输出展示 */
 import { toast } from "sonner";
 import { CodeEditor } from "@/components/chat/code-editor";
 import {
@@ -16,6 +17,11 @@ import {
 } from "@/components/chat/icons";
 import { generateUUID } from "@/lib/utils";
 
+/**
+ * Pyodide 输出处理器集合。
+ * - matplotlib：劫持 plt.show，将图像以 base64 PNG 形式输出到 stdout
+ * - basic：基础输出捕获占位
+ */
 const OUTPUT_HANDLERS = {
   matplotlib: `
     import io
@@ -52,9 +58,15 @@ const OUTPUT_HANDLERS = {
   `,
 };
 
+/**
+ * 检测代码所需的输出处理器。
+ * @param code - 待执行的 Python 代码字符串
+ * @returns 所需处理器名称数组，始终包含 "basic"
+ */
 function detectRequiredHandlers(code: string): string[] {
   const handlers: string[] = ["basic"];
 
+  // 检测 matplotlib 使用，按需注入图像输出处理器
   if (code.includes("matplotlib") || code.includes("plt.")) {
     handlers.push("matplotlib");
   }
@@ -62,6 +74,7 @@ function detectRequiredHandlers(code: string): string[] {
   return handlers;
 }
 
+/** 代码 Artifact 的元数据类型，保存控制台输出列表 */
 type Metadata = {
   outputs: ConsoleOutput[];
 };
@@ -70,16 +83,19 @@ export const codeArtifact = new Artifact<"code", Metadata>({
   kind: "code",
   description:
     "Useful for code generation; Code execution is only available for python code.",
+  // 初始化元数据，控制台输出为空
   initialize: ({ setMetadata }) => {
     setMetadata({
       outputs: [],
     });
   },
+  // 处理流式数据：代码增量更新时同步刷新 Artifact 内容
   onStreamPart: ({ streamPart, setArtifact }) => {
     if (streamPart.type === "data-codeDelta") {
       setArtifact((draftArtifact) => ({
         ...draftArtifact,
-        content: streamPart.data,
+        content: streamPart.data as string,
+        // 当内容长度在 300~310 之间时自动展示，避免过早显示导致闪烁
         isVisible:
           draftArtifact.status === "streaming" &&
           draftArtifact.content.length > 300 &&
@@ -90,6 +106,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       }));
     }
   },
+  // 渲染代码编辑器与控制台输出
   content: ({ metadata, setMetadata, ...props }) => {
     return (
       <>
@@ -101,6 +118,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
           <Console
             consoleOutputs={metadata.outputs}
             setConsoleOutputs={() => {
+              // 清空控制台输出
               setMetadata({
                 ...metadata,
                 outputs: [],
@@ -116,10 +134,12 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       icon: <PlayIcon size={18} />,
       label: "Run",
       description: "Execute code",
+      // 执行 Python 代码：加载 Pyodide、注入输出处理器、运行代码并捕获输出
       onClick: async ({ content, setMetadata }) => {
         const runId = generateUUID();
         const outputContent: ConsoleOutputContent[] = [];
 
+        // 写入一条 in_progress 状态的输出占位
         setMetadata((metadata) => ({
           ...metadata,
           outputs: [
@@ -138,6 +158,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/",
           });
 
+          // 配置 stdout 批量输出回调，区分图像与文本
           currentPyodideInstance.setStdout({
             batched: (output: string) => {
               outputContent.push({
@@ -149,6 +170,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
             },
           });
 
+          // 根据代码 import 自动加载依赖包，并展示加载进度
           await currentPyodideInstance.loadPackagesFromImports(content, {
             messageCallback: (message: string) => {
               setMetadata((metadata) => ({
@@ -165,6 +187,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
             },
           });
 
+          // 注入所需的输出处理器（如 matplotlib 图像劫持）
           const requiredHandlers = detectRequiredHandlers(content);
           for (const handler of requiredHandlers) {
             if (OUTPUT_HANDLERS[handler as keyof typeof OUTPUT_HANDLERS]) {
@@ -172,6 +195,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
                 OUTPUT_HANDLERS[handler as keyof typeof OUTPUT_HANDLERS]
               );
 
+              // matplotlib 处理器需要额外调用初始化函数
               if (handler === "matplotlib") {
                 await currentPyodideInstance.runPythonAsync(
                   "setup_matplotlib_output()"
@@ -180,8 +204,10 @@ export const codeArtifact = new Artifact<"code", Metadata>({
             }
           }
 
+          // 执行用户代码
           await currentPyodideInstance.runPythonAsync(content);
 
+          // 写入最终输出结果
           setMetadata((metadata) => ({
             ...metadata,
             outputs: [
@@ -194,6 +220,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
             ],
           }));
         } catch (error: unknown) {
+          // 捕获执行错误并写入失败状态
           setMetadata((metadata) => ({
             ...metadata,
             outputs: [
@@ -220,6 +247,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("prev");
       },
+      // 当前已是第一版时禁用回退
       isDisabled: ({ currentVersionIndex }) => {
         if (currentVersionIndex === 0) {
           return true;
@@ -234,6 +262,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       onClick: ({ handleVersionChange }) => {
         handleVersionChange("next");
       },
+      // 当前已是最新版时禁用前进
       isDisabled: ({ isCurrentVersion }) => {
         if (isCurrentVersion) {
           return true;

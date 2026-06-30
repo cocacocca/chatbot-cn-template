@@ -19,9 +19,9 @@ yarn-error.log*
 .env
 .vercel
 .env*.local
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/*
+/supabase/.temp/
 next-env.d.ts
 tsconfig.tsbuildinfo
+docs/
+.eve/
+.workflow-data/

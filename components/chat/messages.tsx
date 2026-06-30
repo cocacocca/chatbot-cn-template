@@ -1,23 +1,24 @@
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file 消息列表组件，显示会话消息并处理滚动与加载状态 */
 import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useMessages } from "@/hooks/use-messages";
-import type { Vote } from "@/lib/db/schema";
+import { useScrollToBottom } from "@/hooks/chat/use-scroll-to-bottom";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { PreviewMessage, ThinkingMessage } from "./message";
 
+/** Messages 组件属性，从 ActiveChatContextValue 中提取相关字段 */
 type MessagesProps = {
-  addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  addToolApprovalResponse: (params: {
+    messageId: string;
+    approvalId: string;
+    approved: boolean;
+  }) => Promise<void>;
   chatId: string;
-  status: UseChatHelpers<ChatMessage>["status"];
-  votes: Vote[] | undefined;
+  status: "ready" | "submitted" | "in_progress" | "error";
   messages: ChatMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  regenerate: UseChatHelpers<ChatMessage>["regenerate"];
-  isReadonly: boolean;
+  setMessages: (messages: ChatMessage[]) => void;
+  regenerate: () => Promise<void>;
   isArtifactVisible: boolean;
   isLoading?: boolean;
   selectedModelId: string;
@@ -28,11 +29,9 @@ function PureMessages({
   addToolApprovalResponse,
   chatId,
   status,
-  votes,
   messages,
   setMessages,
   regenerate,
-  isReadonly,
   isArtifactVisible,
   isLoading,
   selectedModelId: _selectedModelId,
@@ -43,13 +42,8 @@ function PureMessages({
     endRef: messagesEndRef,
     isAtBottom,
     scrollToBottom,
-    hasSentMessage,
     reset,
-  } = useMessages({
-    status,
-  });
-
-  useDataStream();
+  } = useScrollToBottom();
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
@@ -80,22 +74,16 @@ function PureMessages({
               addToolApprovalResponse={addToolApprovalResponse}
               chatId={chatId}
               isLoading={
-                status === "streaming" && messages.length - 1 === index
+                status === "in_progress" && messages.length - 1 === index
               }
-              isReadonly={isReadonly}
               key={message.id}
               message={message}
               onEdit={onEditMessage}
               regenerate={regenerate}
               requiresScrollPadding={
-                hasSentMessage && index === messages.length - 1
+                messages.length > 0 && index === messages.length - 1
               }
               setMessages={setMessages}
-              vote={
-                votes
-                  ? votes.find((vote) => vote.messageId === message.id)
-                  : undefined
-              }
             />
           ))}
 

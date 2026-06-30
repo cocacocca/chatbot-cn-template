@@ -1,6 +1,6 @@
 "use client";
 
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file 多模态输入组件，支持文本、附件、模型选择和快捷命令 */
 import type { UIMessage } from "ai";
 import equal from "fast-deep-equal";
 import { ArrowUpIcon, BrainIcon, EyeIcon, WrenchIcon } from "lucide-react";
@@ -17,7 +17,6 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { useModels } from "@/hooks/use-models";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import {
   ModelSelector,
@@ -30,7 +29,9 @@ import {
   ModelSelectorName,
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
-import type { ChatModel, ModelCapabilities } from "@/lib/ai/model-types";
+import { useModels } from "@/hooks/data/use-models";
+import type { ChatModel } from "@/lib/ai/model-types";
+import { deleteAllChats, deleteChat } from "@/lib/queries/client/chat-queries";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -49,7 +50,29 @@ import {
   slashCommands,
 } from "./slash-commands";
 import { SuggestedActions } from "./suggested-actions";
-import type { VisibilityType } from "./visibility-selector";
+
+/** MultimodalInput 组件使用的 sendMessage 类型，支持文本和文件附件 */
+type MultimodalSendMessage =
+  | ((message: {
+      role: "user";
+      parts: Array<
+        | { type: "text"; text: string }
+        | { type: "file"; url: string; name?: string; mediaType: string }
+      >;
+    }) => Promise<void>)
+  | (() => Promise<void>);
+
+/**
+ * MultimodalInput 组件使用的 status 类型
+ *
+ * 注意：项目自定义 UIStatus，非 AI SDK 7 的 ChatStatus。
+ * use-active-chat.tsx 将 AI SDK 的 'submitted' | 'streaming' 统一映射为 'in_progress'，
+ * 表示"进行中"状态。各组件接收的 status 均为映射后的值。
+ */
+type MultimodalStatus = "ready" | "submitted" | "in_progress" | "error";
+
+/** MultimodalInput 组件使用的 setMessages 类型 */
+type MultimodalSetMessages = (messages: ChatMessage[]) => void;
 
 function setCookie(name: string, value: string) {
   const maxAge = 60 * 60 * 24 * 365;
@@ -69,7 +92,6 @@ function PureMultimodalInput({
   setMessages,
   sendMessage,
   className,
-  selectedVisibilityType,
   selectedModelId,
   onModelChange,
   editingMessage,
@@ -79,17 +101,14 @@ function PureMultimodalInput({
   chatId: string;
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
-  status: UseChatHelpers<ChatMessage>["status"];
+  status: MultimodalStatus;
   stop: () => void;
   attachments: Attachment[];
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   messages: UIMessage[];
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-  sendMessage:
-    | UseChatHelpers<ChatMessage>["sendMessage"]
-    | (() => Promise<void>);
+  setMessages: MultimodalSetMessages;
+  sendMessage: MultimodalSendMessage;
   className?: string;
-  selectedVisibilityType: VisibilityType;
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
   editingMessage?: ChatMessage | null;
@@ -149,7 +168,7 @@ function PureMultimodalInput({
         router.push("/");
         break;
       case "clear":
-        setMessages(() => []);
+        setMessages([]);
         break;
       case "rename":
         toast("Rename is available from the sidebar chat menu.");
@@ -168,13 +187,14 @@ function PureMultimodalInput({
         toast("Delete this chat?", {
           action: {
             label: "Delete",
-            onClick: () => {
-              fetch(
-                `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat?id=${chatId}`,
-                { method: "DELETE" }
-              );
-              router.push("/");
-              toast.success("Chat deleted");
+            onClick: async () => {
+              try {
+                await deleteChat(chatId);
+                router.push("/");
+                toast.success("Chat deleted");
+              } catch (_error) {
+                toast.error("删除对话失败");
+              }
             },
           },
         });
@@ -183,12 +203,14 @@ function PureMultimodalInput({
         toast("删除所有对话？", {
           action: {
             label: "全部删除",
-            onClick: () => {
-              fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history`, {
-                method: "DELETE",
-              });
-              router.push("/");
-              toast.success("All chats deleted");
+            onClick: async () => {
+              try {
+                await deleteAllChats();
+                router.push("/");
+                toast.success("All chats deleted");
+              } catch (_error) {
+                toast.error("删除所有对话失败");
+              }
             },
           },
         });
@@ -380,11 +402,7 @@ function PureMultimodalInput({
         messages.length === 0 &&
         attachments.length === 0 &&
         uploadQueue.length === 0 && (
-          <SuggestedActions
-            chatId={chatId}
-            selectedVisibilityType={selectedVisibilityType}
-            sendMessage={sendMessage}
-          />
+          <SuggestedActions chatId={chatId} sendMessage={sendMessage} />
         )}
 
       <input
@@ -515,7 +533,7 @@ function PureMultimodalInput({
             />
           </PromptInputTools>
 
-          {status === "submitted" || status === "streaming" ? (
+          {status === "submitted" || status === "in_progress" ? (
             <StopButton setMessages={setMessages} stop={stop} />
           ) : (
             <PromptInputSubmit
@@ -551,9 +569,6 @@ export const MultimodalInput = memo(
     if (!equal(prevProps.attachments, nextProps.attachments)) {
       return false;
     }
-    if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
-      return false;
-    }
     if (prevProps.selectedModelId !== nextProps.selectedModelId) {
       return false;
     }
@@ -577,7 +592,7 @@ function PureAttachmentsButton({
   selectedModelId,
 }: {
   fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
-  status: UseChatHelpers<ChatMessage>["status"];
+  status: MultimodalStatus;
   selectedModelId: string;
 }) {
   const { capabilities: caps } = useModels();
@@ -618,8 +633,7 @@ function PureModelSelectorCompact({
   const { models: activeModels, capabilities } = useModels();
 
   const selectedModel =
-    activeModels.find((m) => m.id === selectedModelId) ??
-    activeModels[0];
+    activeModels.find((m) => m.id === selectedModelId) ?? activeModels[0];
   const [provider] = (selectedModel?.id ?? "").split("/");
 
   if (!selectedModel || activeModels.length === 0) {
@@ -719,10 +733,10 @@ const ModelSelectorCompact = memo(PureModelSelectorCompact);
 
 function PureStopButton({
   stop,
-  setMessages,
+  setMessages: _setMessages,
 }: {
   stop: () => void;
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
+  setMessages: MultimodalSetMessages;
 }) {
   return (
     <Button
@@ -731,7 +745,6 @@ function PureStopButton({
       onClick={(event) => {
         event.preventDefault();
         stop();
-        setMessages((messages) => messages);
       }}
     >
       <StopIcon size={14} />

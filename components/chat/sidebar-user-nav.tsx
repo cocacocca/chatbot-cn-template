@@ -1,8 +1,7 @@
 "use client";
 
 import { ChevronUp } from "lucide-react";
-import type { User } from "next-auth";
-import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -16,6 +15,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useUser } from "@/hooks/auth/use-user";
+import { createClient } from "@/lib/supabase/client";
 import { LoaderIcon } from "./icons";
 import { toast } from "./toast";
 
@@ -27,16 +28,21 @@ function emailToHue(email: string): number {
   return Math.abs(hash) % 360;
 }
 
-export function SidebarUserNav({ user }: { user: User }) {
-  const { status } = useSession();
+export function SidebarUserNav() {
+  const router = useRouter();
+  const supabase = createClient();
+  const { user, profile, loading } = useUser();
   const { setTheme, resolvedTheme } = useTheme();
+
+  const displayName = profile?.name || user?.email || "";
+  const emailForHue = user?.email ?? "";
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            {status === "loading" ? (
+            {loading ? (
               <SidebarMenuButton className="h-10 justify-between rounded-lg bg-transparent text-sidebar-foreground/50 transition-colors duration-150 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
                 <div className="flex flex-row items-center gap-2">
                   <div className="size-6 animate-pulse rounded-full bg-sidebar-foreground/10" />
@@ -56,11 +62,11 @@ export function SidebarUserNav({ user }: { user: User }) {
                 <div
                   className="size-5 shrink-0 rounded-full ring-1 ring-sidebar-border/50"
                   style={{
-                    background: `linear-gradient(135deg, oklch(0.35 0.08 ${emailToHue(user.email ?? "")}), oklch(0.25 0.05 ${emailToHue(user.email ?? "") + 40}))`,
+                    background: `linear-gradient(135deg, oklch(0.35 0.08 ${emailToHue(emailForHue)}), oklch(0.25 0.05 ${emailToHue(emailForHue) + 40}))`,
                   }}
                 />
                 <span className="truncate text-[13px]" data-testid="user-email">
-                  {user?.name || user?.email}
+                  {displayName}
                 </span>
                 <ChevronUp className="ml-auto size-3.5 text-sidebar-foreground/50" />
               </SidebarMenuButton>
@@ -84,8 +90,8 @@ export function SidebarUserNav({ user }: { user: User }) {
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button
                 className="w-full cursor-pointer text-[13px]"
-                onClick={() => {
-                  if (status === "loading") {
+                onClick={async () => {
+                  if (loading) {
                     toast({
                       type: "error",
                       description: "正在检查登录状态，请重试！",
@@ -94,9 +100,9 @@ export function SidebarUserNav({ user }: { user: User }) {
                     return;
                   }
 
-                  signOut({
-                    redirectTo: "/login",
-                  });
+                  await supabase.auth.signOut();
+                  router.push("/login");
+                  router.refresh();
                 }}
                 type="button"
               >

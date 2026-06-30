@@ -1,48 +1,15 @@
+/** @file 注册页面，展示标题、注册表单以及跳转登录的链接 */
 "use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useActionState, useEffect, useState } from "react";
 import { AuthForm } from "@/components/chat/auth-form";
-import { SubmitButton } from "@/components/chat/submit-button";
-import { toast } from "@/components/chat/toast";
-import { type RegisterActionState, register } from "../actions";
 
+/**
+ * 注册页面组件
+ * 渲染「注册」标题、说明文案、注册表单，以及底部跳转到登录页面的链接。
+ */
 export default function Page() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [isSuccessful, setIsSuccessful] = useState(false);
-
-  const [state, formAction] = useActionState<RegisterActionState, FormData>(
-    register,
-    { status: "idle" }
-  );
-
-  const { update: updateSession } = useSession();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
-  useEffect(() => {
-    if (state.status === "user_exists") {
-      toast({ type: "error", description: "该邮箱已被注册" });
-    } else if (state.status === "failed") {
-      toast({ type: "error", description: "注册失败，请稍后重试" });
-    } else if (state.status === "invalid_data") {
-      toast({ type: "error", description: "请检查输入格式" });
-    } else if (state.status === "success") {
-      toast({ type: "success", description: "注册成功！" });
-      setIsSuccessful(true);
-      updateSession();
-      router.refresh();
-    }
-  }, [state.status]);
-
-  const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
-    formAction(formData);
-  };
-
   return (
     <>
       <motion.div
@@ -57,9 +24,7 @@ export default function Page() {
         </p>
       </motion.div>
 
-      <AuthForm action={handleSubmit} defaultEmail={email} showName>
-        <SubmitButton isSuccessful={isSuccessful}>注册</SubmitButton>
-      </AuthForm>
+      <AuthForm mode="register" />
 
       <motion.p
         animate={{ opacity: 1 }}

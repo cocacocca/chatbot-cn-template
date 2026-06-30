@@ -1,48 +1,15 @@
+/** @file 登录页面，展示标题、登录表单以及跳转注册的链接 */
 "use client";
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useActionState, useEffect, useState } from "react";
 import { AuthForm } from "@/components/chat/auth-form";
-import { SubmitButton } from "@/components/chat/submit-button";
-import { toast } from "@/components/chat/toast";
-import { type LoginActionState, login } from "../actions";
 
+/**
+ * 登录页面组件
+ * 渲染「登录」标题、说明文案、登录表单，以及底部跳转到注册页面的链接。
+ */
 export default function Page() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [isSuccessful, setIsSuccessful] = useState(false);
-
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    { status: "idle" }
-  );
-
-  const { update: updateSession } = useSession();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
-  useEffect(() => {
-    if (state.status === "failed") {
-      toast({ type: "error", description: "邮箱或密码不正确" });
-    } else if (state.status === "invalid_data") {
-      toast({ type: "error", description: "请检查输入格式" });
-    } else if (state.status === "success") {
-      setIsSuccessful(true);
-      updateSession();
-
-      const callbackUrl = searchParams.get("callbackUrl") || "/";
-      router.push(callbackUrl);
-    }
-  }, [state.status]);
-
-  const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
-    formAction(formData);
-  };
-
   return (
     <>
       <motion.div
@@ -57,9 +24,7 @@ export default function Page() {
         </p>
       </motion.div>
 
-      <AuthForm action={handleSubmit} defaultEmail={email}>
-        <SubmitButton isSuccessful={isSuccessful}>登录</SubmitButton>
-      </AuthForm>
+      <AuthForm mode="login" />
 
       <motion.p
         animate={{ opacity: 1 }}

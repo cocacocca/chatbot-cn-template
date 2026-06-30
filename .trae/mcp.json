@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "supabase": {
+      "url": "http://localhost:8000/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment"
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "Sequential Thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {},
+      "disabled": true
+    },
+    "Filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Dev\\DevProjects\\chatbot-cn-template",
+        "C:\\Dev\\TechStackDocs",
+        "C:\\Dev\\DevProjects\\chatbot-cn-template-wiki"
+      ],
+      "env": {}
+    },
+    "eslint": {
+      "command": "npx",
+      "args": ["@eslint/mcp@latest"],
+      "env": {}
+    }
+  }
+}

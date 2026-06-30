@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useArtifactSelector } from "@/hooks/use-artifact";
+import { useArtifactSelector } from "@/hooks/data/use-artifact";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";

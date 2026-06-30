@@ -1,17 +1,20 @@
 "use client";
 
-import type { UseChatHelpers } from "@ai-sdk/react";
+/** @file 建议操作组件，显示预设的快捷对话建议 */
 import { motion } from "framer-motion";
 import { memo } from "react";
 import { suggestions } from "@/lib/constants";
-import type { ChatMessage } from "@/lib/types";
 import { Suggestion } from "../ai-elements/suggestion";
-import type { VisibilityType } from "./visibility-selector";
+
+/** SuggestedActions 组件使用的 sendMessage 类型 */
+type SuggestedSendMessage = (message: {
+  role: "user";
+  parts: Array<{ type: "text"; text: string }>;
+}) => Promise<void>;
 
 type SuggestedActionsProps = {
   chatId: string;
-  sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
-  selectedVisibilityType: VisibilityType;
+  sendMessage: SuggestedSendMessage;
 };
 
 function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
@@ -67,9 +70,6 @@ export const SuggestedActions = memo(
   PureSuggestedActions,
   (prevProps, nextProps) => {
     if (prevProps.chatId !== nextProps.chatId) {
-      return false;
-    }
-    if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
       return false;
     }
 
